@@ -1,0 +1,107 @@
+/* ===== Global Layout ===== */
+
+Screen {
+    background: $surface;
+    color: $text;
+}
+
+/* ===== Header / Footer ===== */
+
+Header {
+    background: $accent;
+    color: $text;
+    padding: 1 2;
+    text-style: bold;
+}
+
+Footer {
+    background: $surface-darken-3;
+    color: $text-muted;
+    border-top: tall $accent;
+}
+
+/* ===== Input Bar ===== */
+
+#input {
+    background: $surface-lighten-2;
+    border: tall $accent;
+}
+
+/* ===== Main Content Area ===== */
+
+#content {
+    background: $surface;
+    color: $text;
+    padding: 2 4;
+    overflow-y: auto;
+}
+
+/* Make scripture text more readable */
+#content Text {
+    padding-top: 1;
+    padding-bottom: 1;
+}
+
+/* Verse numbers */
+.vnum {
+    color: $accent;
+    text-style: bold;
+}
+
+/* ===== Modal Window ===== */
+
+/* Modal overlay */
+ModalScreen {
+    background: $surface-darken-3 40%;
+    align: center middle;
+}
+
+/* Modal window */
+ModalScreen > Vertical {
+    background: $surface-lighten-2 85%;
+    border: thick $accent;
+    padding: 2 4;
+    width: 40%;
+    max-width: 60;
+    height: auto;
+}
+
+ModalScreen Button {
+    margin-top: 1;
+    width: 100%;
+}
+
+ModalScreen Label {
+    padding: 1 1;
+}
+
+
+/* ===== Buttons ===== */
+
+Button {
+    background: $accent;
+    color: $text;
+    text-style: bold;
+}
+
+Button:hover {
+    background: $accent-lighten-3;
+}
+
+/* Footer */
+Footer {
+    background: $surface-darken-3;
+    color: $text-muted;
+    layout: horizontal;
+    min-height: 3;
+    padding: 0 1;
+}
+
+/* ===== Attribution ===== */
+
+#api-attribution {
+    dock: bottom;
+    padding: 1 2;
+    background: $surface;
+    color: $text-muted;
+}

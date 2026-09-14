@@ -1,0 +1,21 @@
+[project]
+name = "bible"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "textual>=8.0.0",
+    "niquests>=3.21.1,<4",
+    "clypi>=1.9.1,<2",
+    "pydantic-settings>=2.15.0,<3",
+    "rich>=15.0.0,<16",
+    "loguru>=0.7.3,<0.8",
+    "beautifulsoup4>=4.15.0,<5",
+]
+
+[project.scripts]
+bible-tui = "bible.tui.tui:main"
+bible-cli = "bible.cli.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
