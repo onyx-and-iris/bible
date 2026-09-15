@@ -6,11 +6,9 @@ from loguru import logger
 
 from .settings import settings
 
-DB_PATH = 'bible_cache.db'
-
 
 def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(settings.DB_PATH) as conn:
         cursor = conn.execute("""
             SELECT name FROM sqlite_master
             WHERE type='table' AND name='cache'
@@ -32,7 +30,7 @@ def init_db():
 
 
 def get_cached(key: str):
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(settings.DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute('SELECT value, last_updated FROM cache WHERE key = ?', (key,))
         row = cursor.fetchone()
@@ -51,7 +49,7 @@ def get_cached(key: str):
 
 
 def set_cached(key: str, value: str):
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(settings.DB_PATH) as conn:
         conn.execute(
             'REPLACE INTO cache (key, value, last_updated) VALUES (?, ?, ?)',
             (key, value, datetime.now().isoformat()),  # noqa: DTZ005

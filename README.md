@@ -55,7 +55,10 @@ BIBLE_BIBLE_NAME="New King James Version"
 BIBLE_BOOK_NAME='Genesis'
 BIBLE_THEME="onyx-light"
 BIBLE_LOG_LEVEL="info"
+BIBLE_DB_PATH="<user home directory>/.cache/bible/bible_cache.db"
 ```
+
+DB_PATH defaults to `<user home directory> / .cache / bible / config.env / bible_cache.db`
 
 > Note, although cache expiry days is configurable it should NOT be set above 30 days, as per the terms and conditions of the API. See [Acceptable Use][acceptable-use]
 

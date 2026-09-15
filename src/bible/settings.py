@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,9 +11,10 @@ class Settings(BaseSettings):
     CACHE_EXPIRY_DAYS: int = 30
     THEME: str = 'dark'
     LOG_LEVEL: str = 'info'
+    DB_PATH: Path = Path.home() / '.cache' / 'bible' / 'bible_cache.db'
 
     model_config = SettingsConfigDict(
-        env_file='.env',
+        env_file=['.env', Path.home() / '.config' / 'bible' / 'config.env'],
         env_file_encoding='utf-8',
         env_prefix='BIBLE_',
         validate_assignment=True,

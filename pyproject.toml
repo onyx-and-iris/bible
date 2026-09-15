@@ -1,26 +1,14 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = ["hatchling"]
 
 [project]
 name = "bible"
-version = "0.2.0"
+version = "0.2.1"
 requires-python = ">=3.11"
-classifiers = [
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
-]
-dependencies = [
-  "beautifulsoup4>=4.15,<5",
-  "clypi>=1.9.1,<2",
-  "loguru>=0.7.3,<0.8",
-  "niquests>=3.21.1,<4",
-  "pydantic-settings>=2.15,<3",
-  "rich>=15,<16",
-  "textual>=8",
-]
-scripts.bible-cli = "bible.cli.cli:main"
-scripts.bible-tui = "bible.tui.tui:main"
+classifiers = ["Programming Language :: Python :: 3 :: Only", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.14"]
+dependencies = ["textual>=8.0.0", "niquests>=3.21.1,<4", "clypi>=1.9.1,<2", "pydantic-settings>=2.15.0,<3", "rich>=15.0.0,<16", "loguru>=0.7.3,<0.8", "beautifulsoup4>=4.15.0,<5"]
+
+[project.scripts]
+bible-cli = "bible.cli.cli:main"
+bible-tui = "bible.tui.tui:main"
