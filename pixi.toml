@@ -2,6 +2,8 @@
 channels = ["https://prefix.dev/conda-forge"]
 platforms = ["win-64", "linux-64", "osx-arm64", "osx-64"]
 preview = ["pixi-build"]
+name = "bible"
+version = "0.2.0"
 
 [tasks]
 cli = "bible-cli"
@@ -15,10 +17,6 @@ ruff = ">=0.16.7,<0.17"
 
 [dependencies.bible]
 path = "."
-
-[package]
-name = "bible"
-version = "0.1.0"
 
 [package.build.backend]
 name = "pixi-build-python"

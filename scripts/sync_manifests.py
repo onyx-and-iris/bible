@@ -12,7 +12,13 @@ pixi = tomllib.loads(pixi_path.read_text())
 pyproject = tomllib.loads(pyproject_path.read_text())
 
 # --- Sync version ---
-pixi_version = pixi['package']['version']
+if 'workspace' in pixi and 'version' in pixi['workspace']:
+    pixi_version = pixi['workspace']['version']
+elif 'package' in pixi and 'version' in pixi['package']:
+    pixi_version = pixi['package']['version']
+else:
+    raise KeyError('No version found in pixi.toml under [workspace] or [package].')
+
 pyproject['project']['version'] = pixi_version
 
 # --- Sync only [package.run-dependencies] ---
@@ -26,5 +32,6 @@ pixi_path.write_text(tomlkit.dumps(pixi))
 pyproject_path.write_text(tomlkit.dumps(pyproject))
 
 print(
-    f'Synced version {pixi_version} and {len(runtime_deps)} runtime dependencies from [package.run-dependencies].'
+    f'Synced version {pixi_version} and {len(runtime_deps)} runtime dependencies '
+    'from [package.run-dependencies].'
 )
