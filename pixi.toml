@@ -11,6 +11,10 @@ tui = "bible-tui"
 sync = "python scripts/sync_manifests.py"
 fmt = "ruff format"
 
+[tasks.bump]
+args = ["kind"]
+cmd = "pixi project version {{ kind }}"
+
 [dependencies]
 tomlkit = ">=0.15.1,<0.16"
 ruff = ">=0.16.7,<0.17"
