@@ -6,8 +6,3 @@ repos:
         entry: pixi run sync
         language: system
         stages: [pre-commit]
-
-  - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: 'v2.29.4'
-    hooks:
-      - id: pyproject-fmt

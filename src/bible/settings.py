@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     DB_PATH: Path = Path.home() / '.cache' / 'bible' / 'bible_cache.db'
 
     model_config = SettingsConfigDict(
-        env_file=['.env', Path.home() / '.config' / 'bible' / 'config.env'],
+        env_file=[Path('.env'), Path.home() / '.config' / 'bible' / 'config.env'],
         env_file_encoding='utf-8',
         env_prefix='BIBLE_',
         validate_assignment=True,

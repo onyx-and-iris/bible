@@ -2,6 +2,7 @@
 import pathlib
 import tomllib
 
+import pyproject_fmt
 import tomlkit
 
 root = pathlib.Path(__file__).resolve().parents[1]
@@ -30,6 +31,7 @@ pyproject['project']['dependencies'] = runtime_deps
 # --- Write back ---
 pixi_path.write_text(tomlkit.dumps(pixi))
 pyproject_path.write_text(tomlkit.dumps(pyproject))
+pyproject_fmt.run([str(pyproject_path)])
 
 print(
     f'Synced version {pixi_version} and {len(runtime_deps)} runtime dependencies '

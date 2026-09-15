@@ -1,4 +1,4 @@
-from pathlib import Path
+from bible.settings import settings
 
 
 def parse_reference(text: str):
@@ -61,7 +61,13 @@ def expand_numbers(items: list[str | int]) -> list[int]:
 
 
 def save_env_value(key: str, value: str):
-    env_path = Path('.env')
+    for pn in settings.model_config.get('env_file', []):
+        if pn.exists():
+            env_path = pn
+            break
+    else:
+        raise FileNotFoundError('No environment file found.')
+
     lines = env_path.read_text().splitlines()
     new_lines = []
     found = False
