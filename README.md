@@ -53,8 +53,8 @@ Example .env:
 BIBLE_API_KEY="<api-key>"
 BIBLE_BIBLE_NAME="New King James Version"
 BIBLE_BOOK_NAME='Genesis'
-BIBLE_ENDPOINT='https://rest.api.bible'
 BIBLE_THEME="onyx-light"
+BIBLE_LOG_LEVEL="info"
 ```
 
 > Note, although cache expiry days is configurable it should NOT be set above 30 days, as per the terms and conditions of the API. See [Acceptable Use][acceptable-use]

@@ -9,6 +9,7 @@ from textual.theme import Theme
 from textual.widgets import Footer, Header, Input, Link, Static
 
 from bible.api import BibleAPI
+from bible.logging import configure_logging
 from bible.render import generate_summary, render_chapter, render_verse
 from bible.settings import settings
 from bible.sqlite import cache_json, get_cached, init_db, load_json
@@ -305,10 +306,18 @@ class BibleTUI(App):
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Bible TUI — interact with Bible.API')
     parser.add_argument('--theme', type=str, help='Specify the theme (light or dark)')
+    parser.add_argument(
+        '--log-level',
+        type=str,
+        help='Specify the log level (e.g., info, debug, warning)',
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+
+    configure_logging(args.log_level or settings.LOG_LEVEL)
+
     app = BibleTUI(theme_override=args.theme)
     app.run()

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     API_KEY: str
     CACHE_EXPIRY_DAYS: int = 30
     THEME: str = 'dark'
+    LOG_LEVEL: str = 'info'
 
     model_config = SettingsConfigDict(
         env_file='.env',

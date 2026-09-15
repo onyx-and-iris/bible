@@ -5,6 +5,7 @@ from loguru import logger
 from typing_extensions import override
 
 from bible.api import BibleAPI
+from bible.logging import configure_logging
 from bible.settings import settings
 from bible.sqlite import cache_json, get_cached, init_db
 
@@ -25,6 +26,11 @@ class BibleCli(Command):
         help='The name of the Bible to retrieve books from',
         group='Connection',
     )
+    log_level: str = arg(
+        settings.LOG_LEVEL,
+        help='The log level for the Bible CLI',
+        group='Connection',
+    )
 
     @final
     @classmethod
@@ -34,6 +40,8 @@ class BibleCli(Command):
     @override
     async def pre_run_hook(self):
         """Hook to run before the main command execution."""
+
+        configure_logging(self.log_level)
         init_db()
 
         key = 'bibles:list'
