@@ -4,7 +4,6 @@ from clypi import Command, Positional, arg
 from typing_extensions import override
 
 from bible.mixins import BibleLookupMixin
-from bible.sqlite import load_json
 
 from .book_commands import Chapter, Chapters, List, Verse, Verses
 
@@ -29,11 +28,7 @@ class Book(BibleLookupMixin, Command):
         if not self.bible_name:
             raise ValueError("The 'bible_name' flag is required.")
 
-        bibles = load_json('bibles:list')
-        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
-        if not bible:
-            raise ValueError(f"Bible with name '{self.bible_name}' not found.")
-
+        bible = self.find_bible(self.bible_name)
         await self.load_or_fetch_books(bible)
 
     @override
