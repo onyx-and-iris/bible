@@ -59,7 +59,7 @@ bible-tui
 
 The bible app will look for an environments file in the following locations:
 - .env in the current working directory
-- \<user home directory> / .cache / bible / config.env
+- \<user home directory> / .config / bible / config.env
 
 Example .env:
 
