@@ -5,6 +5,12 @@
 
 ---
 
+### Requirements
+
+- An API key from [API.Bible][api-bible]
+
+---
+
 ### Install
 
 #### Clone the repository, and then
@@ -44,12 +50,6 @@ bible-tui
 ```
 
 ![tui](./img/tui.png)
-
----
-
-### Requirements
-
-- An API key from [API.Bible][api-bible]
 
 ---
 
