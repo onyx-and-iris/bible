@@ -51,6 +51,8 @@ bible-tui
 
 - An API key from [API.Bible][api-bible]
 
+---
+
 ### Configure
 
 Example .env:
