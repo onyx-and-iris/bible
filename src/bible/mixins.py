@@ -203,6 +203,9 @@ class ReferenceParserMixin:
 
     def expand_numbers(self, items):
         """Expand ranges like ['1', '3-5'] into [1, 3, 4, 5]."""
+        if items is None:
+            return None
+
         result = []
         for item in items:
             if '-' in item:

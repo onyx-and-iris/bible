@@ -57,4 +57,8 @@ class Book(Command):
             self.print_help()
             return
 
-        await Chapters(bible_name=self.bible_name, book_name=self.book_name).run()
+        if self.subcommand is None:
+            sub = Chapters(bible_name=self.bible_name, book_name=self.book_name)
+            return await sub.astart()
+
+        return await self.subcommand.astart()
