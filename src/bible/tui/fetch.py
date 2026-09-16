@@ -43,35 +43,46 @@ async def fetch_chapter_or_verse(
     verse_number: str | None = None,
 ):
     """Fetch chapter or verse from cache or API."""
+
+    # --- Cache key ---
     if verse_number:
-        key = f'verses:content:{settings.BIBLE_NAME}:{settings.BOOK_NAME}:{chapter_number}:{verse_number}'
+        key = (
+            f'verses:content:{settings.BIBLE_NAME}:'
+            f'{settings.BOOK_NAME}:{chapter_number}:{verse_number}'
+        )
     else:
-        key = f'chapters:content:{settings.BIBLE_NAME}:{settings.BOOK_NAME}:{chapter_number}'
+        key = (
+            f'chapters:content:{settings.BIBLE_NAME}:'
+            f'{settings.BOOK_NAME}:{chapter_number}'
+        )
 
     cached = load_json(key)
     if cached:
         return cached
 
+    # --- Bible lookup ---
     bibles = load_json('bibles:list')
-    for bible in bibles:
-        if bible.get('name') == settings.BIBLE_NAME:
-            bible_id = bible.get('id')
-            break
-    else:
+    bible = next((b for b in bibles if b.get('name') == settings.BIBLE_NAME), None)
+    if not bible:
         raise BibleTUIFetchError(f"Bible '{settings.BIBLE_NAME}' not found in cache.")
+    bible_id = bible['id']
 
+    # --- Chapter list lookup ---
     chapter_list = load_json(
         f'chapters:list:{settings.BIBLE_NAME}:{settings.BOOK_NAME}'
     )
     if not chapter_list:
         chapter_list = await app.initialise_chapter_list()
-    for chapter_item in chapter_list:
-        if chapter_item.get('number') == chapter_number:
-            chapter_id = chapter_item.get('id')
-            break
-    else:
-        raise BibleTUIFetchError(f"Chapter '{chapter_number}' not found in cache.")
 
+    chapter_item = next(
+        (ch for ch in chapter_list if str(ch.get('number')) == str(chapter_number)),
+        None,
+    )
+    if not chapter_item:
+        raise BibleTUIFetchError(f"Chapter '{chapter_number}' not found in cache.")
+    chapter_id = chapter_item['id']
+
+    # --- API fetch ---
     async with BibleAPI() as api:
         if verse_number:
             verse_meta = await fetch_verse_meta(
@@ -80,7 +91,8 @@ async def fetch_chapter_or_verse(
                 verse_number,
                 chapter_id,
             )
-            response = await api.get_verse(bible_id, verse_meta.get('id'))
+            verse_id = verse_meta.get('id')
+            response = await api.get_verse(bible_id, verse_id)
         else:
             response = await api.get_chapter(bible_id, chapter_id)
 
@@ -97,35 +109,45 @@ async def fetch_verse_meta(
     chapter_id: str,
 ):
     """Fetch metadata for a specific verse from cache or API."""
-    key = f'verses:content:{settings.BIBLE_NAME}:{settings.BOOK_NAME}:{chapter_number}:{verse_number}'
+
+    # --- Cache key for verse content ---
+    key = (
+        f'verses:content:{settings.BIBLE_NAME}:'
+        f'{settings.BOOK_NAME}:{chapter_number}:{verse_number}'
+    )
     cached = load_json(key)
     if cached:
         return cached
 
+    # --- Load or fetch verse list ---
     verses_key = (
         f'verses:list:{settings.BIBLE_NAME}:{settings.BOOK_NAME}:{chapter_number}'
     )
     verses = load_json(verses_key)
+
     if not verses:
         async with BibleAPI() as api:
             response = await api.get_verses(bible_id, chapter_id)
             verses = response.get('data', [])
             if not verses:
                 raise BibleTUIFetchError(
-                    f"Unable to fetch list of verses for chapter '{chapter_number}' from the API."
+                    f"Unable to fetch list of verses for chapter '{chapter_number}' "
+                    'from the API.'
                 )
             cache_json(verses_key, verses)
 
+    # --- Find verse metadata ---
     target_ref = f'{settings.BOOK_NAME} {chapter_number}:{verse_number}'
-    for verse in verses:
-        if isinstance(verse, dict) and verse.get('reference') == target_ref:
-            verse_meta = verse
-            break
-    else:
-        verse_meta = None
+
+    verse_meta = next(
+        (v for v in verses if isinstance(v, dict) and v.get('reference') == target_ref),
+        None,
+    )
+
     if not verse_meta:
         raise BibleTUIFetchError(f'Verse {target_ref} not found.')
 
+    # --- Fetch verse content ---
     async with BibleAPI() as api:
         response = await api.get_verse(bible_id, verse_meta.get('id'))
         data = response.get('data', {})

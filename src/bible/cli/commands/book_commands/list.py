@@ -11,12 +11,12 @@ from bible.sqlite import load_json
 class List(Command):
     """List all available Bible books."""
 
+    bible_name: str = arg(inherited=True)
     contains: str = arg(
         None,
         help='Filter Bible books by name containing this string',
         group='Filter',
     )
-    bible_name: str = arg(inherited=True)
     sort: bool = arg(
         False,
         help='Sort the Bible books alphabetically',

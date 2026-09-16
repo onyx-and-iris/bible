@@ -42,6 +42,7 @@ class BibleTUI(App):
         self.call_later(self.initialise_bible_list)
 
     async def initialise_bible_list(self):
+        """Ensure the list of Bibles is cached."""
         bibles_key = 'bibles:list'
         if get_cached(bibles_key):
             return
@@ -54,19 +55,21 @@ class BibleTUI(App):
             cache_json(bibles_key, data)
 
     async def initialise_book_list(self) -> Any:
+        """Ensure the list of books for the selected Bible is cached."""
         books_key = f'books:list:{settings.BIBLE_NAME}'
+
         if cached_books := load_json(books_key):
             return cached_books
 
+        # --- Bible lookup ---
         bibles = load_json('bibles:list')
-        for bible in bibles:
-            if bible.get('name') == settings.BIBLE_NAME:
-                bible_id = bible.get('id')
-                break
-        else:
+        bible = next((b for b in bibles if b.get('name') == settings.BIBLE_NAME), None)
+        if not bible:
             raise BibleTUIFetchError(
                 f"Bible '{settings.BIBLE_NAME}' not found in cache."
             )
+
+        bible_id = bible['id']
 
         async with BibleAPI() as api:
             response = await api.get_books(bible_id)
@@ -76,35 +79,40 @@ class BibleTUI(App):
                     f"Unable to fetch list of books for Bible '{settings.BIBLE_NAME}' from the API."
                 )
             cache_json(books_key, data)
+
         return data
 
     async def initialise_chapter_list(self) -> Any:
+        """Ensure the list of chapters for the selected book is cached."""
         chapters_key = f'chapters:list:{settings.BIBLE_NAME}:{settings.BOOK_NAME}'
+
         if cached_chapters := load_json(chapters_key):
             return cached_chapters
 
+        # --- Bible lookup ---
         bibles = load_json('bibles:list')
-        for bible in bibles:
-            if bible.get('name') == settings.BIBLE_NAME:
-                bible_id = bible.get('id')
-                break
-        else:
+        bible = next((b for b in bibles if b.get('name') == settings.BIBLE_NAME), None)
+        if not bible:
             raise BibleTUIFetchError(
                 f"Bible '{settings.BIBLE_NAME}' not found in cache."
             )
 
+        bible_id = bible['id']
+
+        # --- Book lookup ---
         books_key = f'books:list:{settings.BIBLE_NAME}'
         books = load_json(books_key)
+
         if not books:
             books = await self.initialise_book_list()
 
-        for book in books:
-            if book.get('name') == settings.BOOK_NAME:
-                book_id = book.get('id')
-                break
-        else:
+        book = next((bk for bk in books if bk.get('name') == settings.BOOK_NAME), None)
+        if not book:
             raise BibleTUIFetchError(f"Book '{settings.BOOK_NAME}' not found in cache.")
 
+        book_id = book['id']
+
+        # --- Fetch chapters ---
         async with BibleAPI() as api:
             response = await api.get_chapters(bible_id, book_id)
             data = response.get('data', [])
@@ -113,6 +121,7 @@ class BibleTUI(App):
                     f'Unable to fetch list of chapters for {settings.BOOK_NAME} from the API.'
                 )
             cache_json(chapters_key, data)
+
         return data
 
     def compose(self) -> ComposeResult:

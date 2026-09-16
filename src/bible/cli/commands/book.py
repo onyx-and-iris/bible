@@ -28,10 +28,8 @@ class Book(Command):
             raise ValueError("The 'bible_name' flag is required.")
 
         bibles = load_json('bibles:list')
-        for bible in bibles:
-            if bible.get('name', '') == self.bible_name:
-                break
-        else:
+        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
+        if not bible:
             raise ValueError(f"Bible with name '{self.bible_name}' not found.")
 
         key = f'books:list:{self.bible_name}'

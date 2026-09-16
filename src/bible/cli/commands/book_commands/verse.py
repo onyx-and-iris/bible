@@ -26,28 +26,20 @@ class Verse(Command):
 
     @override
     async def pre_run_hook(self):
-        """Ensure chapter list is cached."""
         bibles = load_json('bibles:list')
-        for bible in bibles:
-            if bible.get('name', '') == self.bible_name:
-                break
-        else:
+        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
+        if not bible:
             raise ValueError(f"Bible with name '{self.bible_name}' not found.")
 
         books = load_json(f'books:list:{self.bible_name}')
-        for book in books:
-            if book.get('name', '') == self.book_name:
-                break
-        else:
+        book = next((bk for bk in books if bk.get('name') == self.book_name), None)
+        if not book:
             raise ValueError(f"Book with name '{self.book_name}' not found.")
 
         key = f'chapters:list:{self.bible_name}:{self.book_name}'
         chapters = load_json(key)
-        if chapters:
-            logger.debug(
-                f"Using cached list of chapters for '{self.bible_name}:{self.book_name}'."
-            )
-        else:
+
+        if not chapters:
             async with BibleAPI() as api:
                 response = await api.get_chapters(bible['id'], book['id'])
                 chapters = response.get('data', [])
@@ -58,28 +50,24 @@ class Verse(Command):
     @override
     async def run(self):
         bibles = load_json('bibles:list')
-        for bible in bibles:
-            if bible.get('name', '') == self.bible_name:
-                break
-        else:
+        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
+        if not bible:
             raise ValueError(f"Bible with name '{self.bible_name}' not found.")
 
         chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
-        for chapter in chapters:
-            if self.chapter_number == int(chapter.get('number', None)):
-                break
-        else:
+        chapter = next(
+            (ch for ch in chapters if int(ch.get('number', -1)) == self.chapter_number),
+            None,
+        )
+        if not chapter:
             raise ValueError(
                 f"Chapter number '{self.chapter_number}' not found in book '{self.book_name}'."
             )
 
         key = f'verses:list:{self.bible_name}:{self.book_name}:{self.chapter_number}'
         verses = load_json(key)
-        if verses:
-            logger.debug(
-                f"Using cached list of verses for '{self.bible_name}:{self.book_name}:{self.chapter_number}'."
-            )
-        else:
+
+        if not verses:
             async with BibleAPI() as api:
                 response = await api.get_verses(bible['id'], chapter['id'])
                 verses = response.get('data', [])
@@ -89,19 +77,20 @@ class Verse(Command):
                     )
                 cache_json(key, verses)
 
-        # Match verse by reference string (e.g., "Ruth 1:1")
         target_ref = f'{self.book_name} {self.chapter_number}:{self.verse_number}'
         verse_meta = next((v for v in verses if v.get('reference') == target_ref), None)
+
         if not verse_meta:
             raise ValueError(f'Verse {target_ref} not found.')
 
         verse_id = verse_meta['id']
-        cache_key = f'verses:content:{self.bible_name}:{self.book_name}:{self.chapter_number}:{self.verse_number}'
+        cache_key = (
+            f'verses:content:{self.bible_name}:{self.book_name}:'
+            f'{self.chapter_number}:{self.verse_number}'
+        )
 
         verse_data = load_json(cache_key)
-        if verse_data:
-            logger.debug(f'Using cached verse {target_ref}.')
-        else:
+        if not verse_data:
             async with BibleAPI() as api:
                 response = await api.get_verse(bible['id'], verse_id)
                 verse_data = response.get('data', {})
@@ -120,28 +109,30 @@ class Verses(Command):
     book_name: Positional[str] = arg(help='The name of the Bible book to retrieve')
     chapter_number: Positional[int] = arg(help='The number of the chapter to retrieve')
     verse_numbers: Positional[list[int | str]] = arg(
-        None, help="List of verse numbers or ranges. For example, '1 2 3', '5-9'."
+        None,
+        help="List of verse numbers or ranges. For example, '1 2 3', '5-9'.",
     )
+
+    @final
+    @classmethod
+    def epilog(cls):
+        return 'Attribution:\n  Data provided by Bible.API — https://api.bible.com'
 
     @override
     async def pre_run_hook(self):
-        """Ensure chapter list is cached."""
         bibles = load_json('bibles:list')
-        for bible in bibles:
-            if bible.get('name', '') == self.bible_name:
-                break
-        else:
+        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
+        if not bible:
             raise ValueError(f"Bible with name '{self.bible_name}' not found.")
 
         books = load_json(f'books:list:{self.bible_name}')
-        for book in books:
-            if book.get('name', '') == self.book_name:
-                break
-        else:
+        book = next((bk for bk in books if bk.get('name') == self.book_name), None)
+        if not book:
             raise ValueError(f"Book with name '{self.book_name}' not found.")
 
         key = f'chapters:list:{self.bible_name}:{self.book_name}'
         chapters = load_json(key)
+
         if not chapters:
             async with BibleAPI() as api:
                 response = await api.get_chapters(bible['id'], book['id'])
@@ -159,7 +150,7 @@ class Verses(Command):
 
         chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
         chapter = next(
-            (ch for ch in chapters if int(ch.get('number', 0)) == self.chapter_number),
+            (ch for ch in chapters if int(ch.get('number', -1)) == self.chapter_number),
             None,
         )
         if not chapter:
@@ -169,6 +160,7 @@ class Verses(Command):
 
         key = f'verses:list:{self.bible_name}:{self.book_name}:{self.chapter_number}'
         verses = load_json(key)
+
         if not verses:
             async with BibleAPI() as api:
                 response = await api.get_verses(bible['id'], chapter['id'])
@@ -182,12 +174,17 @@ class Verses(Command):
         allowed = expand_verse_numbers(self.verse_numbers)
 
         async def fetch_verse(index, verse_meta):
-            target_ref = f'{self.book_name} {self.chapter_number}:{index}'
             if allowed and index not in allowed:
                 return None
 
+            target_ref = f'{self.book_name} {self.chapter_number}:{index}'
             verse_id = verse_meta['id']
-            cache_key = f'verses:content:{self.bible_name}:{self.book_name}:{self.chapter_number}:{index}'
+
+            cache_key = (
+                f'verses:content:{self.bible_name}:{self.book_name}:'
+                f'{self.chapter_number}:{index}'
+            )
+
             cached = load_json(cache_key)
             if cached:
                 logger.debug(f'Using cached verse {target_ref}.')
@@ -202,7 +199,6 @@ class Verses(Command):
                 cache_json(cache_key, data)
                 return data
 
-        # ✅ Run all verse fetches concurrently
         tasks = [fetch_verse(i, v) for i, v in enumerate(verses, start=1)]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         results = [r for r in results if isinstance(r, dict)]
