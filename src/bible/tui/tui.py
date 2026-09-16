@@ -135,7 +135,7 @@ class BibleTUI(App):
         yield self.input
         yield VerticalScroll(Static('Welcome to the Bible TUI!', id='content'))
         yield Link(
-            'Powered by Bible.API',
+            'Powered by API.Bible',
             url='https://api.bible',
             tooltip='Click me',
         )
@@ -313,7 +313,7 @@ class BibleTUI(App):
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Bible TUI — interact with Bible.API')
+    parser = argparse.ArgumentParser(description='Bible TUI — interact with API.Bible')
     parser.add_argument('--theme', type=str, help='Specify the theme (light or dark)')
     parser.add_argument(
         '--log-level',

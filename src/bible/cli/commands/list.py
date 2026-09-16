@@ -25,7 +25,7 @@ class List(Command):
     @final
     @classmethod
     def epilog(cls):
-        return 'Attribution:\n  Data provided by Bible.API — https://api.bible.com'
+        return 'Attribution:\n  Data provided by API.Bible — https://api.bible.com'
 
     @override
     async def run(self):

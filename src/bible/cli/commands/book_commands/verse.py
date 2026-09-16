@@ -22,7 +22,7 @@ class Verse(Command):
     @final
     @classmethod
     def epilog(cls):
-        return 'Attribution:\n  Data provided by Bible.API — https://api.bible.com'
+        return 'Attribution:\n  Data provided by API.Bible — https://api.bible.com'
 
     @override
     async def pre_run_hook(self):
@@ -116,7 +116,7 @@ class Verses(Command):
     @final
     @classmethod
     def epilog(cls):
-        return 'Attribution:\n  Data provided by Bible.API — https://api.bible.com'
+        return 'Attribution:\n  Data provided by API.Bible — https://api.bible.com'
 
     @override
     async def pre_run_hook(self):

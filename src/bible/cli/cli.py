@@ -13,7 +13,7 @@ from .commands import Book, List
 
 
 class BibleCli(Command):
-    """Bible CLI — interact with Bible.API"""
+    """Bible CLI — interact with API.Bible"""
 
     subcommand: Book | List | None
     api_key: str = arg(
@@ -35,7 +35,7 @@ class BibleCli(Command):
     @final
     @classmethod
     def epilog(cls):
-        return 'Attribution:\n  Data provided by Bible.API — https://api.bible.com'
+        return 'Attribution:\n  Data provided by API.Bible — https://api.bible.com'
 
     @override
     async def pre_run_hook(self):

@@ -43,7 +43,7 @@ bible-tui
 
 ### Requirements
 
-- An API key from [API Bible][api-bible]
+- An API key from [API.Bible][api-bible]
 
 ### Configure
 
