@@ -29,7 +29,13 @@ pipx install .
 bible-cli book chapter Genesis 1 
 ```
 
-![cli](./img/cli.png)
+![cli-chapter](./img/cli-chapter.png)
+
+```console
+bible-cli book verse John 1 1
+```
+
+![cli-verse](./img/cli-verse.png)
 
 ### Run as a TUI
 
