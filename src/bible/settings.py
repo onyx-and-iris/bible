@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     CACHE_EXPIRY_DAYS: int = 30
     THEME: str = 'onyx-dark'
     LOG_LEVEL: str = 'info'
+    LOG_OUTPUT: str = 'console'
+    LOG_PATH: str = 'app.log'
     DB_PATH: Path = Path.home() / '.cache' / 'bible' / 'bible_cache.db'
 
     model_config = SettingsConfigDict(

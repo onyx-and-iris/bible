@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import typing
 from typing import Any
 
@@ -8,19 +9,18 @@ from textual.containers import VerticalScroll
 from textual.theme import Theme
 from textual.widgets import Footer, Header, Input, Link, Static
 
-from bible.api import BibleAPI
-from bible.logging import configure_logging
+from bible.logging import LogOutputType, configure_logging
+from bible.mixins import BibleLookupMixin, ReferenceParserMixin
 from bible.render import generate_summary, render_chapter, render_verse
 from bible.settings import settings
-from bible.sqlite import cache_json, get_cached, init_db, load_json
+from bible.sqlite import init_db, load_json
 
 from . import util
 from .exceptions import BibleTUIFetchError
-from .fetch import fetch_multiple
 from .settings_modal import SettingsModal
 
 
-class BibleTUI(App):
+class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
     """A Textual TUI for browsing and reading Bible chapters."""
 
     CSS_PATH = 'tui.tcss'
@@ -43,88 +43,79 @@ class BibleTUI(App):
 
     async def initialise_bible_list(self) -> Any:
         """Ensure the list of Bibles is cached."""
-        bibles_key = 'bibles:list'
-        if get_cached(bibles_key):
-            return
-
-        async with BibleAPI() as api:
-            response = await api.get_bibles()
-            data = response.get('data', [])
-            if not data:
-                raise BibleTUIFetchError('Unable to fetch list of Bibles from the API.')
-            cache_json(bibles_key, data)
-
-        return data
+        return await self.load_or_fetch_bibles()
 
     async def initialise_book_list(self) -> Any:
         """Ensure the list of books for the selected Bible is cached."""
-        books_key = f'books:list:{settings.BIBLE_NAME}'
-
-        if cached_books := load_json(books_key):
-            return cached_books
-
-        # --- Bible lookup ---
-        bibles = load_json('bibles:list')
-        bible = next((b for b in bibles if b.get('name') == settings.BIBLE_NAME), None)
-        if not bible:
-            raise BibleTUIFetchError(
-                f"Bible '{settings.BIBLE_NAME}' not found in cache."
-            )
-
-        bible_id = bible['id']
-
-        async with BibleAPI() as api:
-            response = await api.get_books(bible_id)
-            data = response.get('data', [])
-            if not data:
-                raise BibleTUIFetchError(
-                    f"Unable to fetch list of books for Bible '{settings.BIBLE_NAME}' from the API."
-                )
-            cache_json(books_key, data)
-
-        return data
+        bible = self.find_bible(settings.BIBLE_NAME)
+        return await self.load_or_fetch_books(bible)
 
     async def initialise_chapter_list(self) -> Any:
         """Ensure the list of chapters for the selected book is cached."""
-        chapters_key = f'chapters:list:{settings.BIBLE_NAME}:{settings.BOOK_NAME}'
+        bible = self.find_bible(settings.BIBLE_NAME)
+        book = self.find_book(bible, settings.BOOK_NAME)
+        return await self.load_or_fetch_chapters(bible, book)
 
-        if cached_chapters := load_json(chapters_key):
-            return cached_chapters
+    async def fetch_multiple(self, chapters: list[int], verses: list[int] | None):
+        """Fetch multiple chapters or verses concurrently."""
+        tasks = []
 
-        # --- Bible lookup ---
-        bibles = load_json('bibles:list')
-        bible = next((b for b in bibles if b.get('name') == settings.BIBLE_NAME), None)
-        if not bible:
-            raise BibleTUIFetchError(
-                f"Bible '{settings.BIBLE_NAME}' not found in cache."
+        for chapter in chapters:
+            if verses:
+                for verse in verses:
+                    # Each task resolves IDs and fetches independently
+                    tasks.append(self.fetch_chapter_or_verse(str(chapter), str(verse)))
+            else:
+                tasks.append(self.fetch_chapter_or_verse(str(chapter)))
+
+        # Run all tasks concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Pair results with their reference
+        output = []
+        idx = 0
+        for chapter in chapters:
+            if verses:
+                for verse in verses:
+                    output.append(('verse', chapter, verse, results[idx]))
+                    idx += 1
+            else:
+                output.append(('chapter', chapter, None, results[idx]))
+                idx += 1
+
+        return output
+
+    async def fetch_chapter_or_verse(
+        self, chapter_number: str, verse_number: str | None = None
+    ):
+        bible = self.find_bible(settings.BIBLE_NAME)
+        book = self.find_book(settings.BIBLE_NAME, settings.BOOK_NAME)
+        chapters = await self.load_or_fetch_chapters(bible, book)
+        chapter = self.find_chapter(chapters, chapter_number)
+
+        if verse_number:
+            verses = await self.load_or_fetch_verses(bible, chapter, settings.BOOK_NAME)
+            verse_meta = self.find_verse(
+                verses, settings.BOOK_NAME, chapter_number, verse_number
+            )
+            return await self.load_or_fetch_verse_content(
+                bible, book, chapter, verse_meta
             )
 
-        bible_id = bible['id']
+        return await self.load_or_fetch_chapter_content(bible, book, chapter)
 
-        # --- Book lookup ---
-        books_key = f'books:list:{settings.BIBLE_NAME}'
-        books = load_json(books_key)
+    async def fetch_verse_meta(self, chapter_number: str, verse_number: str):
+        bible = self.find_bible(settings.BIBLE_NAME)
+        book = self.find_book(settings.BIBLE_NAME, settings.BOOK_NAME)
+        chapters = await self.load_or_fetch_chapters(bible, book)
+        chapter = self.find_chapter(chapters, chapter_number)
 
-        if not books:
-            books = await self.initialise_book_list()
+        verses = await self.load_or_fetch_verses(bible, chapter, settings.BOOK_NAME)
+        verse_meta = self.find_verse(
+            verses, settings.BOOK_NAME, chapter_number, verse_number
+        )
 
-        book = next((bk for bk in books if bk.get('name') == settings.BOOK_NAME), None)
-        if not book:
-            raise BibleTUIFetchError(f"Book '{settings.BOOK_NAME}' not found in cache.")
-
-        book_id = book['id']
-
-        # --- Fetch chapters ---
-        async with BibleAPI() as api:
-            response = await api.get_chapters(bible_id, book_id)
-            data = response.get('data', [])
-            if not data:
-                raise BibleTUIFetchError(
-                    f'Unable to fetch list of chapters for {settings.BOOK_NAME} from the API.'
-                )
-            cache_json(chapters_key, data)
-
-        return data
+        return await self.load_or_fetch_verse_content(bible, book, chapter, verse_meta)
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -259,7 +250,7 @@ class BibleTUI(App):
             chapters = [ch['number'] for ch in chapters_cache]
 
         try:
-            items = await fetch_multiple(self, book, chapters, verses)
+            items = await self.fetch_multiple(chapters, verses)
         except BibleTUIFetchError as e:
             self.query_one('#content', Static).update(f'⚠️ {e}')
             return
@@ -313,8 +304,31 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--theme', type=str, help='Specify the theme (light or dark)')
     parser.add_argument(
         '--log-level',
+        default=settings.LOG_LEVEL,
         type=str,
+        choices=[
+            'trace',
+            'debug',
+            'info',
+            'success',
+            'warning',
+            'error',
+            'critical',
+        ],
         help='Specify the log level (e.g., info, debug, warning)',
+    )
+    parser.add_argument(
+        '--log-output',
+        default=settings.LOG_OUTPUT,  # Change this if loguru conflicts with the TUI.
+        type=str,
+        choices=['console', 'file', 'both'],
+        help='Specify the log output type (console, file, both)',
+    )
+    parser.add_argument(
+        '--log-path',
+        default=settings.LOG_PATH,
+        type=str,
+        help='Specify the log file path (default is app.log)',
     )
     return parser.parse_args()
 
@@ -322,7 +336,12 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
 
-    configure_logging(args.log_level or settings.LOG_LEVEL)
+    log_output = {
+        'console': [LogOutputType.CONSOLE],
+        'file': [LogOutputType.FILE],
+        'both': [LogOutputType.BOTH],
+    }.get(args.log_output, [LogOutputType.FILE])
+    configure_logging(args.log_level, log_output, args.log_path)
 
     app = BibleTUI(theme_override=args.theme)
     app.run()
