@@ -79,6 +79,7 @@ BIBLE_TUI_LOG_LEVEL="info"
 ```
 
 > Note, although cache expiry days is configurable it should NOT be set above 30 days.
+>
 > See [Acceptable Use][acceptable-use]
 
 ---
