@@ -6,12 +6,11 @@ from loguru import logger
 from typing_extensions import override
 
 from bible import console
-from bible.api import BibleAPI
+from bible.mixins import BibleLookupMixin, ReferenceParserMixin
 from bible.render import render_verse
-from bible.sqlite import cache_json, load_json
 
 
-class Verse(Command):
+class Verse(BibleLookupMixin, ReferenceParserMixin, Command):
     """Retrieve a single Bible verse."""
 
     bible_name: str = arg(inherited=True)
@@ -26,93 +25,39 @@ class Verse(Command):
 
     @override
     async def pre_run_hook(self):
-        bibles = load_json('bibles:list')
-        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
-        if not bible:
-            raise ValueError(f"Bible with name '{self.bible_name}' not found.")
-
-        books = load_json(f'books:list:{self.bible_name}')
-        book = next((bk for bk in books if bk.get('name') == self.book_name), None)
-        if not book:
-            raise ValueError(f"Book with name '{self.book_name}' not found.")
-
-        key = f'chapters:list:{self.bible_name}:{self.book_name}'
-        chapters = load_json(key)
-
-        if not chapters:
-            async with BibleAPI() as api:
-                response = await api.get_chapters(bible['id'], book['id'])
-                chapters = response.get('data', [])
-                if not chapters:
-                    raise ValueError(f"No chapters found for '{self.book_name}'.")
-                cache_json(key, chapters)
+        self.bible = self.find_bible(self.bible_name)
+        self.book = self.find_book(self.bible_name, self.book_name)
+        self.chapters = await self.load_or_fetch_chapters(self.bible, self.book)
 
     @override
     async def run(self):
         """Main execution method for the Verse command."""
 
-        bibles = load_json('bibles:list')
-        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
-        if not bible:
-            raise ValueError(f"Bible with name '{self.bible_name}' not found.")
+        # Find chapter
+        chapter = self.find_chapter(self.chapters, self.chapter_number)
 
-        chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
-        chapter = next(
-            (
-                ch
-                for ch in chapters
-                if (ch.get('number') == 'intro' and self.chapter_number == 'intro')
-                or (
-                    ch.get('number') not in ('intro', None)
-                    and str(self.chapter_number) == str(ch.get('number'))
-                )
-            ),
-            None,
-        )
-        if not chapter:
-            raise ValueError(
-                f"Chapter number '{self.chapter_number}' not found in book '{self.book_name}'."
-            )
+        # Load or fetch verse list
+        verses = await self.load_or_fetch_verses(self.bible, chapter, self.book_name)
 
-        key = f'verses:list:{self.bible_name}:{self.book_name}:{self.chapter_number}'
-        verses = load_json(key)
-
-        if not verses:
-            async with BibleAPI() as api:
-                response = await api.get_verses(bible['id'], chapter['id'])
-                verses = response.get('data', [])
-                if not verses:
-                    raise ValueError(
-                        f'No verses found for chapter {self.chapter_number}.'
-                    )
-                cache_json(key, verses)
-
-        target_ref = f'{self.book_name} {self.chapter_number}:{self.verse_number}'
-        verse_meta = next((v for v in verses if v.get('reference') == target_ref), None)
-
-        if not verse_meta:
-            raise ValueError(f'Verse {target_ref} not found.')
-
-        verse_id = verse_meta['id']
-        cache_key = (
-            f'verses:content:{self.bible_name}:{self.book_name}:'
-            f'{self.chapter_number}:{self.verse_number}'
+        # Find verse metadata
+        verse_meta = self.find_verse(
+            verses,
+            self.book_name,
+            self.chapter_number,
+            self.verse_number,
         )
 
-        verse_data = load_json(cache_key)
-        if not verse_data:
-            async with BibleAPI() as api:
-                response = await api.get_verse(bible['id'], verse_id)
-                verse_data = response.get('data', {})
-                if not verse_data:
-                    raise ValueError(f'No content found for verse {target_ref}.')
-                cache_json(cache_key, verse_data)
+        # Load or fetch verse content
+        content = await self.load_or_fetch_verse_content(
+            self.bible, self.book, chapter, verse_meta
+        )
 
-        text = render_verse(verse_data.get('content', ''))
+        # Render
+        text = render_verse(content.get('content', ''))
         console.out.print(text)
 
 
-class Verses(Command):
+class Verses(BibleLookupMixin, ReferenceParserMixin, Command):
     """Retrieve multiple Bible verses."""
 
     bible_name: str = arg(inherited=True)
@@ -123,102 +68,35 @@ class Verses(Command):
         help="List of verse numbers or ranges. For example, '1 2 3', '5-9'.",
     )
 
-    @final
-    @classmethod
-    def epilog(cls):
-        return 'Attribution:\n  Data provided by API.Bible — https://api.bible.com'
-
     @override
     async def pre_run_hook(self):
-        bibles = load_json('bibles:list')
-        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
-        if not bible:
-            raise ValueError(f"Bible with name '{self.bible_name}' not found.")
-
-        books = load_json(f'books:list:{self.bible_name}')
-        book = next((bk for bk in books if bk.get('name') == self.book_name), None)
-        if not book:
-            raise ValueError(f"Book with name '{self.book_name}' not found.")
-
-        key = f'chapters:list:{self.bible_name}:{self.book_name}'
-        chapters = load_json(key)
-
-        if not chapters:
-            async with BibleAPI() as api:
-                response = await api.get_chapters(bible['id'], book['id'])
-                chapters = response.get('data', [])
-                if not chapters:
-                    raise ValueError(f"No chapters found for '{self.book_name}'.")
-                cache_json(key, chapters)
+        self.bible = self.find_bible(self.bible_name)
+        self.book = self.find_book(self.bible_name, self.book_name)
+        self.chapters = await self.load_or_fetch_chapters(self.bible, self.book)
 
     @override
     async def run(self):
         """Main execution method for the Verses command."""
 
-        bibles = load_json('bibles:list')
-        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
-        if not bible:
-            raise ValueError(f"Bible with name '{self.bible_name}' not found.")
+        # Find chapter
+        chapter = self.find_chapter(self.chapters, self.chapter_number)
 
-        chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
-        chapter = next(
-            (
-                ch
-                for ch in chapters
-                if (ch.get('number') == 'intro' and self.chapter_number == 'intro')
-                or (
-                    ch.get('number') not in ('intro', None)
-                    and str(self.chapter_number) == str(ch.get('number'))
-                )
-            ),
-            None,
-        )
-        if not chapter:
-            raise ValueError(
-                f"Chapter {self.chapter_number} not found in '{self.book_name}'."
-            )
+        # Load or fetch verse list
+        verses = await self.load_or_fetch_verses(self.bible, chapter, self.book_name)
 
-        key = f'verses:list:{self.bible_name}:{self.book_name}:{self.chapter_number}'
-        verses = load_json(key)
-
-        if not verses:
-            async with BibleAPI() as api:
-                response = await api.get_verses(bible['id'], chapter['id'])
-                verses = response.get('data', [])
-                if not verses:
-                    raise ValueError(
-                        f'No verses found for chapter {self.chapter_number}.'
-                    )
-                cache_json(key, verses)
-
-        allowed = expand_verse_numbers(self.verse_numbers)
+        allowed = self.expand_verse_numbers(self.verse_numbers)
 
         async def fetch_verse(index, verse_meta):
+            # Skip verses not in allowed list
             if allowed and index not in allowed:
                 return None
 
-            target_ref = f'{self.book_name} {self.chapter_number}:{index}'
-            verse_id = verse_meta['id']
-
-            cache_key = (
-                f'verses:content:{self.bible_name}:{self.book_name}:'
-                f'{self.chapter_number}:{index}'
+            # Load or fetch verse content
+            return await self.load_or_fetch_verse_content(
+                self.bible, self.book, chapter, verse_meta
             )
 
-            cached = load_json(cache_key)
-            if cached:
-                logger.debug(f'Using cached verse {target_ref}.')
-                return cached
-
-            async with BibleAPI() as api:
-                response = await api.get_verse(bible['id'], verse_id)
-                data = response.get('data', {})
-                if not data:
-                    logger.warning(f'No content found for verse {target_ref}.')
-                    return None
-                cache_json(cache_key, data)
-                return data
-
+        # Run all verse fetches concurrently
         tasks = [fetch_verse(i, v) for i, v in enumerate(verses, start=1)]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         results = [r for r in results if isinstance(r, dict)]
@@ -226,6 +104,7 @@ class Verses(Command):
         if not results:
             raise ValueError('No verses retrieved.')
 
+        # Render
         for verse in results:
             text = render_verse(verse.get('content', ''))
             console.out.print(text)
