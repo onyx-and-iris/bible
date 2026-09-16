@@ -1,6 +1,6 @@
 from typing import final
 
-from clypi import Command, arg
+from clypi import ClypiConfig, Command, arg, configure
 from loguru import logger
 from typing_extensions import override
 
@@ -63,5 +63,7 @@ class BibleCli(Command):
 
 
 def main():
+    configure(ClypiConfig())
+
     cli = BibleCli()
     cli.parse().start()

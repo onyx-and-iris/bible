@@ -30,7 +30,8 @@ class List(Command):
 
     @override
     async def run(self):
-        """List all Bible books, optionally filtered by the 'contains' argument."""
+        """Main execution method for the List command."""
+
         books = load_json(f'books:list:{self.bible_name}')
         if self.sort:
             books = sorted(books, key=lambda x: x.get('name', '').lower())

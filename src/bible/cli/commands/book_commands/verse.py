@@ -15,7 +15,7 @@ class Verse(Command):
     """Retrieve a single Bible verse."""
 
     bible_name: str = arg(inherited=True)
-    book_name: Positional[str] = arg(help='The name of the Bible book to retrieve')
+    book_name: Positional[str] = arg(inherited=True)
     chapter_number: Positional[int] = arg(help='The number of the chapter to retrieve')
     verse_number: Positional[int] = arg(help='The number of the verse to retrieve')
 
@@ -49,6 +49,8 @@ class Verse(Command):
 
     @override
     async def run(self):
+        """Main execution method for the Verse command."""
+
         bibles = load_json('bibles:list')
         bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
         if not bible:
@@ -56,7 +58,15 @@ class Verse(Command):
 
         chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
         chapter = next(
-            (ch for ch in chapters if int(ch.get('number', -1)) == self.chapter_number),
+            (
+                ch
+                for ch in chapters
+                if (ch.get('number') == 'intro' and self.chapter_number == 'intro')
+                or (
+                    ch.get('number') not in ('intro', None)
+                    and str(self.chapter_number) == str(ch.get('number'))
+                )
+            ),
             None,
         )
         if not chapter:
@@ -106,7 +116,7 @@ class Verses(Command):
     """Retrieve multiple Bible verses."""
 
     bible_name: str = arg(inherited=True)
-    book_name: Positional[str] = arg(help='The name of the Bible book to retrieve')
+    book_name: Positional[str] = arg(inherited=True)
     chapter_number: Positional[int] = arg(help='The number of the chapter to retrieve')
     verse_numbers: Positional[list[int | str]] = arg(
         None,
@@ -143,6 +153,8 @@ class Verses(Command):
 
     @override
     async def run(self):
+        """Main execution method for the Verses command."""
+
         bibles = load_json('bibles:list')
         bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
         if not bible:
@@ -150,7 +162,15 @@ class Verses(Command):
 
         chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
         chapter = next(
-            (ch for ch in chapters if int(ch.get('number', -1)) == self.chapter_number),
+            (
+                ch
+                for ch in chapters
+                if (ch.get('number') == 'intro' and self.chapter_number == 'intro')
+                or (
+                    ch.get('number') not in ('intro', None)
+                    and str(self.chapter_number) == str(ch.get('number'))
+                )
+            ),
             None,
         )
         if not chapter:

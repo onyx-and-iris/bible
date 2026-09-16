@@ -1,6 +1,6 @@
 from typing import final
 
-from clypi import Command, arg
+from clypi import Command, Positional, arg
 from loguru import logger
 from typing_extensions import override
 
@@ -13,8 +13,11 @@ from .book_commands import Chapter, Chapters, List, Verse, Verses
 class Book(Command):
     """Manage Bible books, including listing and retrieving chapters."""
 
-    subcommand: List | Chapter | Chapters | Verse | Verses
+    subcommand: List | Chapter | Chapters | Verse | Verses | None
     bible_name: str = arg(inherited=True)
+    book_name: Positional[str] = arg(
+        None, help='The name of the Bible book to retrieve'
+    )
 
     @final
     @classmethod
@@ -45,3 +48,13 @@ class Book(Command):
             if not data:
                 raise ValueError('Unable to fetch list of Bible books from the API.')
             cache_json(key, data)
+
+    @override
+    async def run(self):
+        """Main execution method for the Book command."""
+
+        if not self.book_name:
+            self.print_help()
+            return
+
+        await Chapters(bible_name=self.bible_name, book_name=self.book_name).run()

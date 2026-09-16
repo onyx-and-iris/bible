@@ -29,6 +29,8 @@ class List(Command):
 
     @override
     async def run(self):
+        """Main execution method for the List command."""
+
         bibles = load_json('bibles:list')
         if self.sort:
             bibles = sorted(bibles, key=lambda x: x.get('name', '').lower())

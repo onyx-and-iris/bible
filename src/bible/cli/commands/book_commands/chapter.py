@@ -15,7 +15,7 @@ class Chapter(Command):
     """Retrieve a Bible chapter."""
 
     bible_name: str = arg(inherited=True)
-    book_name: Positional[str] = arg(help='The name of the Bible book to retrieve')
+    book_name: Positional[str] = arg(inherited=True)
     chapter_number: Positional[int | str] = arg(
         help='The number of the chapter to retrieve'
     )
@@ -55,14 +55,14 @@ class Chapter(Command):
 
     @override
     async def run(self):
+        """Main execution method for the Chapter command."""
+
         bibles = load_json('bibles:list')
         bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
         if not bible:
             raise ValueError(f"Bible with name '{self.bible_name}' not found.")
 
         chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
-
-        # Find chapter
         chapter = next(
             (
                 ch
@@ -116,7 +116,7 @@ class Chapters(Command):
     """Retrieve multiple chapters of a Bible book."""
 
     bible_name: str = arg(inherited=True)
-    book_name: Positional[str] = arg(help='The name of the Bible book to retrieve')
+    book_name: Positional[str] = arg(inherited=True)
     chapter_numbers: Positional[list[int | str]] = arg(
         None,
         help="The list of chapter numbers or ranges. For example, '1 2 3', '2-4'.",
@@ -155,68 +155,88 @@ class Chapters(Command):
                 raise ValueError(f"No chapters found for '{self.book_name}'.")
             cache_json(key, chapters)
 
-    @override
-    async def run(self):
-        bibles = load_json('bibles:list')
-        bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
-        if not bible:
-            raise ValueError(f"Bible with name '{self.bible_name}' not found.")
 
-        chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
-        allowed = expand_chapter_numbers(self.chapter_numbers)
+@override
+async def run(self):
+    """Main execution method for the Chapters command."""
 
-        async def fetch_chapter(chapter):
-            number = chapter.get('number')
-            if number is None:
+    # --- Bible lookup ---
+    bibles = load_json('bibles:list')
+    bible = next((b for b in bibles if b.get('name') == self.bible_name), None)
+    if not bible:
+        raise ValueError(f"Bible with name '{self.bible_name}' not found.")
+
+    # --- Chapter list ---
+    chapters = load_json(f'chapters:list:{self.bible_name}:{self.book_name}')
+    allowed = expand_chapter_numbers(self.chapter_numbers)
+
+    async def fetch_chapter(ch):
+        number = ch.get('number')
+
+        if number is None:
+            logger.warning(f"Missing chapter number for '{self.book_name}'. Skipping.")
+            return None
+
+        # --- intro handling ---
+        if number == 'intro':
+            if allowed and 'intro' not in allowed:
+                return None
+        else:
+            # numeric chapter
+            try:
+                num = int(number)
+            except ValueError:
                 logger.warning(
-                    f"Missing chapter number for '{self.book_name}'. Skipping."
+                    f"Invalid chapter number '{number}' for '{self.book_name}'. Skipping."
                 )
                 return None
 
-            if number == 'intro' and allowed and 'intro' not in allowed:
-                return None
-            if number != 'intro' and allowed and int(number) not in allowed:
+            if allowed and num not in allowed:
                 return None
 
-            key = f'chapters:content:{self.bible_name}:{self.book_name}:{number}'
-            cached = load_json(key)
-            if cached:
-                logger.debug(
-                    f"Using cached content for chapter '{self.book_name} {number}'."
-                )
-                return cached
-
-            async with BibleAPI() as api:
-                response = await api.get_chapter(bible['id'], chapter['id'])
-                data = response.get('data', {})
-                if not data:
-                    logger.warning(
-                        f"No content found for chapter '{self.book_name} {number}'."
-                    )
-                    return None
-                cache_json(key, data)
-                return data
-
-        tasks = [fetch_chapter(ch) for ch in chapters]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        results = [r for r in results if isinstance(r, dict)]
-
-        if not results:
-            raise ValueError('No chapters retrieved.')
-
-        for chapter in results:
-            text = render_chapter(
-                html=chapter.get('content', ''),
-                reference=chapter.get('reference', ''),
-                summary=generate_summary(chapter.get('content', '')),
-                metadata={
-                    'Book': chapter.get('reference', '').split()[0],
-                    'Chapter': chapter.get('number'),
-                    'Verses': chapter.get('verseCount'),
-                    'Copyright': chapter.get('copyright', '').replace('©', '(c)'),
-                },
+        # --- cache lookup ---
+        key = f'chapters:content:{self.bible_name}:{self.book_name}:{number}'
+        cached = load_json(key)
+        if cached:
+            logger.debug(
+                f"Using cached content for chapter '{self.book_name} {number}'."
             )
-            console.out.print(text)
+            return cached
+
+        # --- API fetch ---
+        async with BibleAPI() as api:
+            response = await api.get_chapter(bible['id'], ch['id'])
+            data = response.get('data', {})
+            if not data:
+                logger.warning(
+                    f"No content found for chapter '{self.book_name} {number}'."
+                )
+                return None
+            cache_json(key, data)
+            return data
+
+    # --- concurrent fetch ---
+    tasks = [fetch_chapter(ch) for ch in chapters]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    results = [r for r in results if isinstance(r, dict)]
+
+    if not results:
+        raise ValueError('No chapters retrieved.')
+
+    # --- render ---
+    for chapter in results:
+        text = render_chapter(
+            html=chapter.get('content', ''),
+            reference=chapter.get('reference', ''),
+            summary=generate_summary(chapter.get('content', '')),
+            metadata={
+                'Book': chapter.get('reference', '').split()[0],
+                'Chapter': chapter.get('number'),
+                'Verses': chapter.get('verseCount'),
+                'Copyright': chapter.get('copyright', '').replace('©', '(c)'),
+            },
+        )
+        console.out.print(text)
 
 
 def expand_chapter_numbers(chapter_numbers):
