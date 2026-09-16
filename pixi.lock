@@ -292,7 +292,7 @@ packages:
   timestamp: 1780853175566
 - conda: .
   name: bible
-  version: 0.4.0
+  version: 0.4.1
   build: pyh4616a5c_0
   subdir: noarch
   variants:
