@@ -55,6 +55,12 @@ bible-tui
 
 ### Configure
 
+#### Environment Variables
+
+The bible app will look for an environments file in the following locations:
+- .env in the current working directory
+- \<user home directory> / .cache / bible / config.env
+
 Example .env:
 
 ```env

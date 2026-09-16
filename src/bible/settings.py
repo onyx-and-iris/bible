@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     ENDPOINT: str = 'https://rest.api.bible'
     API_KEY: str
     CACHE_EXPIRY_DAYS: int = 30
-    THEME: str = 'dark'
+    THEME: str = 'onyx-dark'
     LOG_LEVEL: str = 'info'
     DB_PATH: Path = Path.home() / '.cache' / 'bible' / 'bible_cache.db'
 
