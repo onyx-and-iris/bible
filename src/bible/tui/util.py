@@ -1,36 +1,70 @@
+import re
+
 from bible.settings import settings
+
+CHAPTER_VERSE_PATTERN = re.compile(
+    r"""
+    ^                      # start of string
+    (?P<chapters>[\d\-]+)  # chapter or chapter-range (e.g. 1 or 1-3)
+    (?:
+        :                  # optional verse separator
+        (?P<verses>[\d\-]+)  # verse or verse-range (e.g. 1 or 1-5)
+    )?
+    $                      # end of string
+    """,
+    re.VERBOSE,
+)
 
 
 def parse_reference(text: str):
     """
     Parse references like:
+      Genesis
       Genesis 1
       Genesis 1:1
       Genesis 1-3
       Genesis 1:1-5
       Genesis 1-3:1-4
+      1 Thes. 1:1
+      Song of Songs 3-4:1-5
+
     Returns (book, chapter_numbers, verse_numbers)
     """
     text = text.strip()
 
-    try:
-        book, rest = text.split(maxsplit=1)
-    except ValueError:
-        raise ValueError('Invalid format. Use: Genesis 1 or Genesis 1:1')
+    # --- Case 1: No digits at all → whole book ---
+    if not re.search(r'\d', text):
+        return text, None, None
 
-    # Chapter and verse part
-    if ':' in rest:
-        chapter_part, verse_part = rest.split(':', 1)
-        chapter_items = chapter_part.split()
-        verse_items = verse_part.split()
-        chapters = expand_numbers(chapter_items)
-        verses = expand_numbers(verse_items)
-        return book, chapters, verses
+    # --- Split from the right ---
+    # e.g. "1 Thes. 1:1" -> ["1 Thes.", "1:1"]
+    # e.g. "Song of Songs 3-4:1-5" -> ["Song of Songs", "3-4:1-5"]
+    parts = text.rsplit(' ', 1)
 
-    # Only chapters
-    chapter_items = rest.split()
-    chapters = expand_numbers(chapter_items)
-    return book, chapters, None
+    if len(parts) == 1:
+        # Something like "Genesis1:1" (no space)
+        book = ''
+        rest = parts[0]
+    else:
+        book, rest = parts
+
+    # --- Identify chapter/verse structure ---
+    match = CHAPTER_VERSE_PATTERN.match(rest)
+    if not match:
+        # If the right-hand part doesn't match chapter/verse syntax,
+        # treat the entire string as a book name.
+        return text, None, None
+
+    chapter_raw = match.group('chapters')
+    verse_raw = match.group('verses')
+
+    # Expand chapter ranges
+    chapters = expand_numbers(chapter_raw.split())
+
+    # Expand verse ranges (if any)
+    verses = expand_numbers(verse_raw.split()) if verse_raw else None
+
+    return book, chapters, verses
 
 
 def expand_numbers(items: list[str | int]) -> list[int]:

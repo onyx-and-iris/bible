@@ -16,7 +16,7 @@ from bible.sqlite import cache_json, get_cached, init_db, load_json
 
 from . import util
 from .exceptions import BibleTUIFetchError
-from .fetch import fetch_chapter_or_verse, fetch_multiple
+from .fetch import fetch_multiple
 from .settings_modal import SettingsModal
 
 
@@ -41,7 +41,7 @@ class BibleTUI(App):
         init_db()
         self.call_later(self.initialise_bible_list)
 
-    async def initialise_bible_list(self):
+    async def initialise_bible_list(self) -> Any:
         """Ensure the list of Bibles is cached."""
         bibles_key = 'bibles:list'
         if get_cached(bibles_key):
@@ -53,6 +53,8 @@ class BibleTUI(App):
             if not data:
                 raise BibleTUIFetchError('Unable to fetch list of Bibles from the API.')
             cache_json(bibles_key, data)
+
+        return data
 
     async def initialise_book_list(self) -> Any:
         """Ensure the list of books for the selected Bible is cached."""
@@ -193,7 +195,7 @@ class BibleTUI(App):
         if not bibles:
             bibles = await self.initialise_bible_list()
 
-        bible_names = [bible.get('name', 'Unknown') for bible in bibles]
+        bible_names = sorted([bible.get('name', 'Unknown') for bible in bibles])
         formatted = '\n'.join(bible_names)
         self.query_one('#content', Static).update(
             f'📚 Available Bibles:\n\n{formatted}'
@@ -213,36 +215,23 @@ class BibleTUI(App):
             f'📚 Books in {settings.BIBLE_NAME}:\n\n{formatted}'
         )
 
-    async def action_show_verse(self) -> None:
-        verse_input = self.input.value.strip()
-        try:
-            book, chapter_verse = verse_input.split(maxsplit=1)
-            settings.BOOK_NAME = book
-            chapter, verse = chapter_verse.split(':')
-            try:
-                verse = await fetch_chapter_or_verse(self, chapter, verse)
-                if not verse:
-                    self.query_one('#content', Static).update('⚠️ Verse not found.')
-                    return
-            except BibleTUIFetchError as e:
-                self.query_one('#content', Static).update(f'⚠️ {e!s}')
-                return
-        except ValueError:
-            self.query_one('#content', Static).update(
-                '❌ Invalid format. Use: Genesis 1:1'
-            )
-            return
-
-        html = verse.get('content', '')
-        text = render_verse(html)
-        self.query_one('#content', Static).update(text)
-
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle user search input."""
         await self.action_show_reference()
 
     async def action_show_reference(self) -> None:
         query = self.input.value.strip()
+
+        if not query:
+            self.query_one('#content', Static).update(
+                '❌ Please enter a reference or command.'
+            )
+            return
+
+        if query.lower() == 'list bibles':
+            await self.action_list_bibles()
+            self.input.value = ''
+            return
 
         if query.lower() == 'list books':
             await self.action_list_books()
@@ -261,13 +250,20 @@ class BibleTUI(App):
             self.query_one('#content', Static).update(f'❌ {e}')
             return
 
+        # If no specific chapters or verses are provided, load all chapters for the current book.
+        if chapters is None and verses is None:
+            chapters_key = f'chapters:list:{settings.BIBLE_NAME}:{settings.BOOK_NAME}'
+            chapters_cache = load_json(chapters_key)
+            if not chapters_cache:
+                chapters_cache = await self.initialise_chapter_list()
+            chapters = [ch['number'] for ch in chapters_cache]
+
         try:
             items = await fetch_multiple(self, book, chapters, verses)
         except BibleTUIFetchError as e:
             self.query_one('#content', Static).update(f'⚠️ {e}')
             return
 
-        # Render everything
         output = Text()
 
         for kind, chapter, verse, data in items:
@@ -309,7 +305,7 @@ class BibleTUI(App):
         cached_books = load_json(books_key)
         if not cached_books:
             cached_books = await self.initialise_book_list()
-        return book in [b.get('name') for b in cached_books]
+        return any(b.get('name', '').lower() == book.lower() for b in cached_books)
 
 
 def parse_args() -> argparse.Namespace:
