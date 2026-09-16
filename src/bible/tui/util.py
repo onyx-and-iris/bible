@@ -1,6 +1,6 @@
 import re
 
-from bible.settings import settings
+from bible.settings import CONFIG_FILES
 
 CHAPTER_VERSE_PATTERN = re.compile(
     r"""
@@ -95,7 +95,7 @@ def expand_numbers(items: list[str | int]) -> list[int]:
 
 
 def save_env_value(key: str, value: str):
-    for pn in settings.model_config.get('env_file', []):
+    for pn in CONFIG_FILES:
         if pn.exists():
             env_path = pn
             break

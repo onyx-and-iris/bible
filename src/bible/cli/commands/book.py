@@ -1,16 +1,15 @@
 from typing import final
 
 from clypi import Command, Positional, arg
-from loguru import logger
 from typing_extensions import override
 
-from bible.api import BibleAPI
-from bible.sqlite import cache_json, load_json
+from bible.mixins import BibleLookupMixin
+from bible.sqlite import load_json
 
 from .book_commands import Chapter, Chapters, List, Verse, Verses
 
 
-class Book(Command):
+class Book(BibleLookupMixin, Command):
     """Manage Bible books, including listing and retrieving chapters."""
 
     subcommand: List | Chapter | Chapters | Verse | Verses | None
@@ -35,19 +34,7 @@ class Book(Command):
         if not bible:
             raise ValueError(f"Bible with name '{self.bible_name}' not found.")
 
-        key = f'books:list:{self.bible_name}'
-        books = load_json(key)
-        if books:
-            logger.debug(f"Using cached list of Bible books for '{self.bible_name}'.")
-            return
-
-        logger.debug(f"Fetching list of Bible books for '{self.bible_name}'.")
-        async with BibleAPI() as api:
-            response = await api.get_books(bible.get('id', ''))
-            data = response.get('data', [])
-            if not data:
-                raise ValueError('Unable to fetch list of Bible books from the API.')
-            cache_json(key, data)
+        await self.load_or_fetch_books(bible)
 
     @override
     async def run(self):

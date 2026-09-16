@@ -15,9 +15,11 @@ class SettingsModal(ModalScreen):
     def compose(self) -> ComposeResult:
         yield Vertical(
             Label('Set Bible', id='bible_label'),
-            Input(value=settings.BIBLE_NAME, placeholder='Default Bible', id='bible'),
+            Input(
+                value=settings.tui.BIBLE_NAME, placeholder='Default Bible', id='bible'
+            ),
             Label('Set Theme', id='theme_label'),
-            Input(value=settings.THEME, placeholder='Default Theme', id='theme'),
+            Input(value=settings.tui.THEME, placeholder='Default Theme', id='theme'),
             Button('Save', id='save', variant='success'),
             Button('Cancel', id='cancel', variant='error'),
         )
@@ -55,11 +57,11 @@ class SettingsModal(ModalScreen):
                 theme_input.selection = (0, 0)
                 return
 
-            util.save_env_value('BIBLE_BIBLE_NAME', bible)
-            util.save_env_value('BIBLE_THEME', theme)
+            util.save_env_value('BIBLE_TUI_BIBLE_NAME', bible)
+            util.save_env_value('BIBLE_TUI_THEME', theme)
 
-            settings.BIBLE_NAME = bible
-            settings.THEME = theme
+            settings.tui.BIBLE_NAME = bible
+            settings.tui.THEME = theme
 
             await self.apply_theme(theme)
 

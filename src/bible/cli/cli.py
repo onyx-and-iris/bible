@@ -1,43 +1,42 @@
 from typing import final
 
 from clypi import ClypiConfig, Command, arg, configure
-from loguru import logger
 from typing_extensions import override
 
-from bible.api import BibleAPI
 from bible.logging import LogOutputType, configure_logging
+from bible.mixins import BibleLookupMixin
 from bible.settings import settings
-from bible.sqlite import cache_json, get_cached, init_db
+from bible.sqlite import init_db
 
 from .commands import Book, List
 
 
-class BibleCli(Command):
+class BibleCli(BibleLookupMixin, Command):
     """Bible CLI — interact with API.Bible"""
 
     subcommand: Book | List | None
     api_key: str = arg(
-        settings.API_KEY,
+        settings.cli.API_KEY,
         help='The API key for the Bible CLI',
         group='Connection',
     )
     bible_name: str = arg(
-        settings.BIBLE_NAME,
+        settings.cli.BIBLE_NAME,
         help='The name of the Bible to retrieve books from',
         group='Connection',
     )
     log_level: str = arg(
-        settings.LOG_LEVEL,
+        settings.cli.LOG_LEVEL,
         help='The log level for the Bible CLI',
         group='Logging',
     )
     log_output: str = arg(
-        settings.LOG_OUTPUT,
+        settings.cli.LOG_OUTPUT,
         help='The log output type for the Bible CLI (console, file, both)',
         group='Logging',
     )
     log_path: str = arg(
-        settings.LOG_PATH,
+        settings.cli.LOG_PATH,
         help='The log file path for the Bible CLI',
         group='Logging',
     )
@@ -62,22 +61,17 @@ class BibleCli(Command):
         )
         init_db()
 
-        key = 'bibles:list'
-        if get_cached(key):
-            logger.debug('Using cached list of Bibles.')
-            return
-
-        logger.debug('Fetching list of Bibles from the API.')
-        async with BibleAPI() as api:
-            response = await api.get_bibles()
-            data = response.get('data', [])
-            if not data:
-                raise ValueError('Unable to fetch list of Bibles from the API.')
-            cache_json(key, data)
+        await self.load_or_fetch_bibles()
 
     @override
     async def run(self):
         """Run the appropriate subcommand based on user input."""
+
+        if self.subcommand is None:
+            self.print_help()
+            return
+
+        return await self.subcommand.astart()
 
 
 def main():

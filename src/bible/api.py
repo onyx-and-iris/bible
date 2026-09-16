@@ -6,7 +6,8 @@ from .settings import settings
 class BibleAPI:
     async def __aenter__(self):
         self.session = AsyncSession(
-            base_url=settings.ENDPOINT, headers={'api-key': settings.API_KEY}
+            base_url=settings.shared.ENDPOINT,
+            headers={'api-key': settings.shared.API_KEY},
         )
         return self
 

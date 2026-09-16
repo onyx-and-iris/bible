@@ -65,14 +65,21 @@ Example .env:
 
 ```env
 BIBLE_API_KEY="<api-key>"
-BIBLE_BIBLE_NAME="New King James Version"
-BIBLE_BOOK_NAME='Genesis'
-BIBLE_THEME="onyx-light"
-BIBLE_LOG_LEVEL="info"
+BIBLE_CACHE_EXPIRY_DAYS=30
 BIBLE_DB_PATH="<user home directory>/.cache/bible/bible_cache.db"
+
+BIBLE_CLI_BIBLE_NAME="New King James Version"
+BIBLE_CLI_BOOK_NAME='Genesis'
+BIBLE_CLI_LOG_LEVEL="info"
+
+BIBLE_TUI_BIBLE_NAME="New King James Version"
+BIBLE_TUI_BOOK_NAME='Genesis'
+BIBLE_TUI_THEME="catppuccin-mocha"
+BIBLE_TUI_LOG_LEVEL="info"
 ```
 
-> Note, although cache expiry days is configurable it should NOT be set above 30 days, as per the terms and conditions of the API. See [Acceptable Use][acceptable-use]
+> Note, although cache expiry days is configurable it should NOT be set above 30 days.
+> See [Acceptable Use][acceptable-use]
 
 ---
 

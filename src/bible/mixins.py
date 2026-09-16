@@ -66,6 +66,7 @@ class BibleLookupMixin:
         key = 'bibles:list'
         cached = load_json(key)
         if cached:
+            logger.debug('Using cached list of Bibles.')
             return cached
 
         async with BibleAPI() as api:
@@ -80,6 +81,7 @@ class BibleLookupMixin:
         key = f'books:list:{bible["name"]}'
         cached = load_json(key)
         if cached:
+            logger.debug(f'Using cached list of books for Bible: {bible["name"]}')
             return cached
 
         async with BibleAPI() as api:
@@ -94,6 +96,7 @@ class BibleLookupMixin:
         key = f'chapters:list:{bible["name"]}:{book["name"]}'
         cached = load_json(key)
         if cached:
+            logger.debug(f'Using cached list of chapters for book: {book["name"]}')
             return cached
 
         async with BibleAPI() as api:
@@ -108,6 +111,9 @@ class BibleLookupMixin:
         key = f'verses:list:{bible["name"]}:{book_name}:{chapter["number"]}'
         cached = load_json(key)
         if cached:
+            logger.debug(
+                f'Using cached list of verses for chapter: {chapter["number"]}'
+            )
             return cached
 
         async with BibleAPI() as api:

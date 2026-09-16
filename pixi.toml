@@ -3,7 +3,7 @@ channels = ["https://prefix.dev/conda-forge"]
 platforms = ["win-64", "linux-64", "osx-arm64", "osx-64"]
 preview = ["pixi-build"]
 name = "bible"
-version = "0.5.0"
+version = "0.6.0"
 
 [tasks]
 cli = "bible-cli"
