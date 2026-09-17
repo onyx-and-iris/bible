@@ -1,7 +1,7 @@
 import asyncio
 from typing import final
 
-from clypi import Command, Positional, arg
+from clypi import Command, Positional, Spinner, arg
 from loguru import logger
 from typing_extensions import override
 
@@ -109,13 +109,14 @@ class Chapters(BibleLookupMixin, ReferenceParserMixin, Command):
                 self.bible, self.book, chapter
             )
 
-        # Run all fetches concurrently
-        tasks = [fetch_chapter(ch) for ch in self.chapters]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        results = [r for r in results if isinstance(r, dict)]
+        async with Spinner('Fetching chapters...'):
+            # Run all fetches concurrently
+            tasks = [fetch_chapter(ch) for ch in self.chapters]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            results = [r for r in results if isinstance(r, dict)]
 
-        if not results:
-            raise ValueError('No chapters retrieved.')
+            if not results:
+                raise ValueError('No chapters retrieved.')
 
         # Render each chapter
         for chapter in results:

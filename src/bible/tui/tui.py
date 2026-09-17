@@ -7,7 +7,7 @@ from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import VerticalScroll
 from textual.theme import Theme
-from textual.widgets import Footer, Header, Input, Link, Static
+from textual.widgets import Footer, Header, Input, Link, LoadingIndicator, Static
 
 from bible.logging import LogOutputType, configure_logging
 from bible.mixins import BibleLookupMixin, ReferenceParserMixin
@@ -133,9 +133,12 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             placeholder='Enter book chapter or book chapter:verse (e.g., Genesis 1, Genesis 1:1)',
             id='search',
         )
+        self.spinner = LoadingIndicator(id='spinner')
+        self.spinner.display = False
 
         yield Header()
         yield self.input
+        yield self.spinner
         yield VerticalScroll(Static('Welcome to the Bible TUI!', id='content'))
         yield Link(
             'Powered by API.Bible',
@@ -262,10 +265,14 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             chapters = [ch['number'] for ch in chapters_cache]
 
         try:
+            self.spinner.display = True
             items = await self.fetch_multiple(chapters, verses)
         except BibleTUIFetchError as e:
             self.query_one('#content', Static).update(f'⚠️ {e}')
+            self.spinner.display = False
             return
+        finally:
+            self.spinner.display = False
 
         output = Text()
 

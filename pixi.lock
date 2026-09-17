@@ -292,13 +292,13 @@ packages:
   timestamp: 1780853175566
 - conda: .
   name: bible
-  version: 0.7.1
+  version: 0.7.2
   build: pyh4616a5c_0
   subdir: noarch
   variants:
     target_platform: noarch
   depends:
-  - textual >=8.0.0
+  - textual >=8.2.8
   - niquests >=3.21.1,<4
   - clypi >=1.9.1,<2
   - pydantic-settings >=2.15.0,<3

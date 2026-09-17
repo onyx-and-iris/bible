@@ -3,7 +3,7 @@ channels = ["https://prefix.dev/conda-forge"]
 platforms = ["win-64", "linux-64", "osx-arm64", "osx-64"]
 preview = ["pixi-build"]
 name = "bible"
-version = "0.7.1"
+version = "0.7.2"
 
 [tasks]
 cli = "bible-cli"
@@ -31,7 +31,7 @@ version = "0.4.*"
 hatchling = "==1.26.3"
 
 [package.run-dependencies]
-textual = ">=8.0.0"
+textual = ">=8.2.8"
 niquests = ">=3.21.1,<4"
 clypi = ">=1.9.1,<2"
 pydantic-settings = ">=2.15.0,<3"

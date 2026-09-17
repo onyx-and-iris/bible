@@ -1,7 +1,7 @@
 import asyncio
 from typing import final
 
-from clypi import Command, Positional, arg
+from clypi import Command, Positional, Spinner, arg
 from loguru import logger
 from typing_extensions import override
 
@@ -98,13 +98,14 @@ class Verses(BibleLookupMixin, ReferenceParserMixin, Command):
                 self.bible, self.book, chapter, verse_meta
             )
 
-        # Run all verse fetches concurrently
-        tasks = [fetch_verse(i, v) for i, v in enumerate(verses, start=1)]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        results = [r for r in results if isinstance(r, dict)]
+        async with Spinner('Fetching verses...'):
+            # Run all verse fetches concurrently
+            tasks = [fetch_verse(i, v) for i, v in enumerate(verses, start=1)]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            results = [r for r in results if isinstance(r, dict)]
 
-        if not results:
-            raise ValueError('No verses retrieved.')
+            if not results:
+                raise ValueError('No verses retrieved.')
 
         # Render
         for verse in results:

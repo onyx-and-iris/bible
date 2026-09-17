@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "bible"
-version = "0.7.1"
+version = "0.7.2"
 requires-python = ">=3.11"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
@@ -21,7 +21,7 @@ dependencies = [
   "niquests>=3.21.1,<4",
   "pydantic-settings>=2.15,<3",
   "rich>=15,<16",
-  "textual>=8",
+  "textual>=8.2.8",
 ]
 scripts.bible-cli = "bible.cli.cli:main"
 scripts.bible-tui = "bible.tui.tui:main"
