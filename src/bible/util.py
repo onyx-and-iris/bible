@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 
 
-def normalize_paragraph_classes(soup: BeautifulSoup) -> BeautifulSoup:
+def normalise_paragraph_classes(soup: BeautifulSoup) -> BeautifulSoup:
     """
     Normalise paragraph class names across different Bible translations.
     Ensures consistent 's' for section titles and 'p' for verse paragraphs.
@@ -20,3 +20,7 @@ def normalize_paragraph_classes(soup: BeautifulSoup) -> BeautifulSoup:
             p['class'] = ['p']
 
     return soup
+
+
+def normalise_user_book_input(name: str) -> str:
+    return name.lower().replace('.', '').replace(',', '').replace(' ', '').strip()

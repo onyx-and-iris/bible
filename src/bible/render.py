@@ -7,7 +7,7 @@ from . import util
 
 def generate_summary(html: str) -> str:
     soup = BeautifulSoup(html, 'html.parser')
-    soup = util.normalize_paragraph_classes(soup)
+    soup = util.normalise_paragraph_classes(soup)
 
     # Prefer section title if available
     section = soup.find('p', class_='s')
@@ -37,7 +37,7 @@ def render_chapter(
     - metadata: dictionary with contextual info (e.g., {"book": "Genesis", "chapter": 1, "verses": 31})
     """
     soup = BeautifulSoup(html, 'html.parser')
-    soup = util.normalize_paragraph_classes(soup)
+    soup = util.normalise_paragraph_classes(soup)
     text = Text()
 
     # Header block
@@ -103,7 +103,7 @@ def render_chapter(
 def render_verse(html: str) -> Text:
     """Render a single verse with rich formatting."""
     soup = BeautifulSoup(html, 'html.parser')
-    soup = util.normalize_paragraph_classes(soup)
+    soup = util.normalise_paragraph_classes(soup)
     text = Text()
 
     # Section titles

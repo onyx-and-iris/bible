@@ -38,6 +38,9 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
     def __init__(self, theme_override: str | None = None, **kwargs):
         super().__init__(**kwargs)
         self.theme_override = theme_override
+        self.current_bible_name = settings.tui.BIBLE_NAME
+        self.current_book_name = settings.tui.BOOK_NAME
+        self.active_theme = settings.tui.THEME
         init_db()
         self.call_later(self.initialise_bible_list)
 
@@ -47,13 +50,13 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
 
     async def initialise_book_list(self) -> Any:
         """Ensure the list of books for the selected Bible is cached."""
-        bible = self.find_bible(settings.tui.BIBLE_NAME)
+        bible = self.find_bible(self.current_bible_name)
         return await self.load_or_fetch_books(bible)
 
     async def initialise_chapter_list(self) -> Any:
         """Ensure the list of chapters for the selected book is cached."""
-        bible = self.find_bible(settings.tui.BIBLE_NAME)
-        book = self.find_book(bible, settings.tui.BOOK_NAME)
+        bible = self.find_bible(self.current_bible_name)
+        book = self.find_book(self.current_bible_name, self.current_book_name)
         return await self.load_or_fetch_chapters(bible, book)
 
     async def fetch_multiple(self, chapters: list[int], verses: list[int] | None):
@@ -88,17 +91,17 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
     async def fetch_chapter_or_verse(
         self, chapter_number: str, verse_number: str | None = None
     ):
-        bible = self.find_bible(settings.tui.BIBLE_NAME)
-        book = self.find_book(settings.tui.BIBLE_NAME, settings.tui.BOOK_NAME)
+        bible = self.find_bible(self.current_bible_name)
+        book = self.find_book(self.current_bible_name, self.current_book_name)
         chapters = await self.load_or_fetch_chapters(bible, book)
         chapter = self.find_chapter(chapters, chapter_number)
 
         if verse_number:
             verses = await self.load_or_fetch_verses(
-                bible, chapter, settings.tui.BOOK_NAME
+                bible, chapter, self.current_book_name
             )
             verse_meta = self.find_verse(
-                verses, settings.tui.BOOK_NAME, chapter_number, verse_number
+                verses, self.current_book_name, chapter_number, verse_number
             )
             return await self.load_or_fetch_verse_content(
                 bible, book, chapter, verse_meta
@@ -107,14 +110,14 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         return await self.load_or_fetch_chapter_content(bible, book, chapter)
 
     async def fetch_verse_meta(self, chapter_number: str, verse_number: str):
-        bible = self.find_bible(settings.tui.BIBLE_NAME)
-        book = self.find_book(settings.tui.BIBLE_NAME, settings.tui.BOOK_NAME)
+        bible = self.find_bible(self.current_bible_name)
+        book = self.find_book(self.current_bible_name, self.current_book_name)
         chapters = await self.load_or_fetch_chapters(bible, book)
         chapter = self.find_chapter(chapters, chapter_number)
 
-        verses = await self.load_or_fetch_verses(bible, chapter, settings.tui.BOOK_NAME)
+        verses = await self.load_or_fetch_verses(bible, chapter, self.current_book_name)
         verse_meta = self.find_verse(
-            verses, settings.tui.BOOK_NAME, chapter_number, verse_number
+            verses, self.current_book_name, chapter_number, verse_number
         )
 
         return await self.load_or_fetch_verse_content(bible, book, chapter, verse_meta)
@@ -139,11 +142,11 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
     async def on_mount(self) -> None:
         """Initial setup when the app starts."""
         self.query_one('#content', Static).update(
-            f'📖 Current Bible: {settings.tui.BIBLE_NAME}\n'
+            f'📖 Current Bible: {self.current_bible_name}\n'
             'Type a reference or press B to list books.'
         )
 
-        theme_name = settings.tui.THEME.lower()
+        theme_name = self.active_theme.lower()
 
         """
         # If it's a built-in theme, just apply it
@@ -197,7 +200,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
     async def action_list_books(self) -> None:
         """List all books for the current Bible."""
 
-        key = f'books:list:{settings.tui.BIBLE_NAME}'
+        key = f'books:list:{self.current_bible_name}'
         books = load_json(key)
         if not books:
             books = await self.initialise_book_list()
@@ -205,7 +208,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         book_names = [book.get('name', 'Unknown') for book in books]
         formatted = '\n'.join(book_names)
         self.query_one('#content', Static).update(
-            f'📚 Books in {settings.tui.BIBLE_NAME}:\n\n{formatted}'
+            f'📚 Books in {self.current_bible_name}:\n\n{formatted}'
         )
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -238,7 +241,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
                 raise ValueError(
                     f"Book '{book}' not found. Enter 'list books' to see available books."
                 )
-            settings.tui.BOOK_NAME = book
+            self.current_book_name = book
         except ValueError as e:
             self.query_one('#content', Static).update(f'❌ {e}')
             return
@@ -246,7 +249,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         # If no specific chapters or verses are provided, load all chapters for the current book.
         if chapters is None and verses is None:
             chapters_key = (
-                f'chapters:list:{settings.tui.BIBLE_NAME}:{settings.tui.BOOK_NAME}'
+                f'chapters:list:{self.current_bible_name}:{self.current_book_name}'
             )
             chapters_cache = load_json(chapters_key)
             if not chapters_cache:
@@ -264,9 +267,9 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         for kind, chapter, verse, data in items:
             if isinstance(data, Exception):
                 ref = (
-                    f'{book} {chapter}'
+                    f'{self.current_book_name} {chapter}'
                     if verse is None
-                    else f'{book} {chapter}:{verse}'
+                    else f'{self.current_book_name} {chapter}:{verse}'
                 )
                 output.append(f'⚠️ Error fetching {ref}: {data}\n')
                 continue
@@ -279,13 +282,13 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             else:
                 summary = generate_summary(html)
                 metadata = {
-                    'Book': book,
+                    'Book': self.current_book_name,
                     'Chapter': chapter,
                     'Verses': data.get('verseCount'),
                 }
                 rendered = render_chapter(
                     html,
-                    f'{book} {chapter}',
+                    f'{self.current_book_name} {chapter}',
                     summary,
                     metadata,
                 )
@@ -296,11 +299,13 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         self.query_one('#content', Static).update(output)
 
     async def __validate_book(self, book: str) -> bool:
-        books_key = f'books:list:{settings.tui.BIBLE_NAME}'
-        cached_books = load_json(books_key)
-        if not cached_books:
-            cached_books = await self.initialise_book_list()
-        return any(b.get('name', '').lower() == book.lower() for b in cached_books)
+        books_key = f'books:list:{self.current_bible_name}'
+        cached_books = load_json(books_key) or await self.initialise_book_list()
+        target = util.normalise_user_book_input(book)
+        return any(
+            util.normalise_user_book_input(b.get('name', '')) == target
+            for b in cached_books
+        )
 
 
 def parse_args() -> argparse.Namespace:

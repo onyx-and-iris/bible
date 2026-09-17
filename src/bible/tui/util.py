@@ -1,6 +1,7 @@
 import re
 
 from bible.settings import CONFIG_FILES
+from bible.util import normalise_user_book_input as _normalise_user_input
 
 CHAPTER_VERSE_PATTERN = re.compile(
     r"""
@@ -117,3 +118,6 @@ def save_env_value(key: str, value: str):
         new_lines.append(f'{key}="{value}"')
 
     env_path.write_text('\n'.join(new_lines))
+
+
+normalise_user_book_input = _normalise_user_input

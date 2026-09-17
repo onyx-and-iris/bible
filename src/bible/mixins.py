@@ -2,6 +2,7 @@ import re
 
 from loguru import logger
 
+from . import util
 from .api import BibleAPI
 from .sqlite import cache_json, load_json
 
@@ -20,12 +21,30 @@ class BibleLookupMixin:
             raise ValueError(f"Bible with name '{name}' not found.")
         return bible
 
-    def find_book(self, bible_name: str, book_name: str):
+    def find_book(self, bible_name: str, user_book_name: str):
         books = load_json(f'books:list:{bible_name}')
-        book = next((b for b in books if b.get('name') == book_name), None)
-        if not book:
-            raise ValueError(f"Book with name '{book_name}' not found.")
-        return book
+        if not books:
+            raise ValueError(f"No books found for Bible '{bible_name}'.")
+
+        target = util.normalise_user_book_input(user_book_name)
+
+        # 1. Exact normalized match
+        for b in books:
+            if util.normalise_user_book_input(b.get('name', '')) == target:
+                return b
+
+        # 2. Abbreviation match (API-provided)
+        for b in books:
+            abbr = util.normalise_user_book_input(b.get('abbreviation', ''))
+            if abbr == target:
+                return b
+
+        # 3. Startswith match (e.g., "gen" → "Gen.")
+        for b in books:
+            if util.normalise_user_book_input(b.get('name', '')).startswith(target):
+                return b
+
+        raise ValueError(f"Book with name '{user_book_name}' not found.")
 
     def find_chapter(self, chapters: list[dict], chapter_number: str | int):
         """Handles numeric chapters and 'intro' chapters."""

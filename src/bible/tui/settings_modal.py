@@ -3,7 +3,6 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label
 
-from bible.settings import settings
 from bible.sqlite import get_cached
 
 from . import util
@@ -13,13 +12,15 @@ class SettingsModal(ModalScreen):
     """Modal window for editing persistent Bible settings."""
 
     def compose(self) -> ComposeResult:
+        app = self.app
+
         yield Vertical(
             Label('Set Bible', id='bible_label'),
             Input(
-                value=settings.tui.BIBLE_NAME, placeholder='Default Bible', id='bible'
+                value=app.current_bible_name, placeholder='Default Bible', id='bible'
             ),
             Label('Set Theme', id='theme_label'),
-            Input(value=settings.tui.THEME, placeholder='Default Theme', id='theme'),
+            Input(value=app.active_theme, placeholder='Default Theme', id='theme'),
             Button('Save', id='save', variant='success'),
             Button('Cancel', id='cancel', variant='error'),
         )
@@ -57,13 +58,12 @@ class SettingsModal(ModalScreen):
                 theme_input.selection = (0, 0)
                 return
 
+            self.app.current_bible_name = bible
+            self.app.active_theme = theme
+            await self.apply_theme(theme)
+
             util.save_env_value('BIBLE_TUI_BIBLE_NAME', bible)
             util.save_env_value('BIBLE_TUI_THEME', theme)
-
-            settings.tui.BIBLE_NAME = bible
-            settings.tui.THEME = theme
-
-            await self.apply_theme(theme)
 
             self.dismiss()
 
