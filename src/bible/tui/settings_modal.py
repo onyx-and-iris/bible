@@ -3,6 +3,7 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label
 
+from bible.render import RenderMode, get_renderer
 from bible.sqlite import get_cached
 
 from . import util
@@ -60,6 +61,8 @@ class SettingsModal(ModalScreen):
 
             self.app.current_bible_name = bible
             self.app.active_theme = theme
+            self.app.chapter_renderer = get_renderer(bible, RenderMode.CHAPTER)
+            self.app.verse_renderer = get_renderer(bible, RenderMode.VERSE)
             await self.apply_theme(theme)
 
             util.save_env_value('BIBLE_TUI_BIBLE_NAME', bible)

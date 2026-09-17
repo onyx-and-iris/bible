@@ -7,7 +7,7 @@ from typing_extensions import override
 
 from bible import console
 from bible.mixins import BibleLookupMixin, ReferenceParserMixin
-from bible.render import render_verse
+from bible.render import RenderMode, get_renderer
 
 
 class Verse(BibleLookupMixin, ReferenceParserMixin, Command):
@@ -28,6 +28,7 @@ class Verse(BibleLookupMixin, ReferenceParserMixin, Command):
         self.bible = self.find_bible(self.bible_name)
         self.book = self.find_book(self.bible_name, self.book_name)
         self.chapters = await self.load_or_fetch_chapters(self.bible, self.book)
+        self.renderer = get_renderer(self.bible_name, RenderMode.VERSE)
 
     @override
     async def run(self):
@@ -53,7 +54,7 @@ class Verse(BibleLookupMixin, ReferenceParserMixin, Command):
         )
 
         # Render
-        text = render_verse(content.get('content', ''))
+        text = self.renderer(content.get('content', ''))
         console.out.print(text)
 
 
@@ -73,6 +74,7 @@ class Verses(BibleLookupMixin, ReferenceParserMixin, Command):
         self.bible = self.find_bible(self.bible_name)
         self.book = self.find_book(self.bible_name, self.book_name)
         self.chapters = await self.load_or_fetch_chapters(self.bible, self.book)
+        self.renderer = get_renderer(self.bible_name, RenderMode.VERSE)
 
     @override
     async def run(self):
@@ -106,7 +108,7 @@ class Verses(BibleLookupMixin, ReferenceParserMixin, Command):
 
         # Render
         for verse in results:
-            text = render_verse(verse.get('content', ''))
+            text = self.renderer(verse.get('content', ''))
             console.out.print(text)
 
 

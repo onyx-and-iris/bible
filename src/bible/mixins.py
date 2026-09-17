@@ -156,6 +156,7 @@ class BibleLookupMixin:
             logger.debug(
                 f"Using cached chapter '{bible['name']}:{book['name']}:{chapter['number']}'"
             )
+            logger.trace(f'Chapter content: {cached.get("content")}')
             return cached
 
         async with BibleAPI() as api:
@@ -177,6 +178,7 @@ class BibleLookupMixin:
             logger.debug(
                 f"Using cached verse '{bible['name']}:{book['name']}:{chapter['number']}:{number}'"
             )
+            logger.trace(f'Verse content: {cached}')
             return cached
 
         async with BibleAPI() as api:
@@ -233,11 +235,12 @@ class ReferenceParserMixin:
 
         result = []
         for item in items:
-            if '-' in item:
-                start, end = item.split('-', 1)
+            s = str(item).strip()
+            if '-' in s:
+                start, end = s.split('-', 1)
                 result.extend(range(int(start), int(end) + 1))
             else:
-                result.append(int(item))
+                result.append(int(s))
         return result
 
     def expand_chapter_numbers(self, items):

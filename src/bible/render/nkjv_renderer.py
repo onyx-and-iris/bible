@@ -1,31 +1,31 @@
+from html import escape
+
 from bs4 import BeautifulSoup
-from rich.markup import escape
 from rich.text import Text
 
-from . import util
+from .common import render_section_titles
 
 
-def generate_summary(html: str) -> str:
+def render_nkjv_verse(html: str) -> Text:
+    """Render a single verse for NKJV."""
     soup = BeautifulSoup(html, 'html.parser')
-    soup = util.normalise_paragraph_classes(soup)
+    text = Text()
 
-    # Prefer section title if available
-    section = soup.find('p', class_='s')
-    if section:
-        title = section.get_text(strip=True)
-        return f'{title} — a summary of key events and teachings.'
+    render_section_titles(soup, text)
 
-    # Otherwise, use the first sentence of the first paragraph
-    first_para = soup.find('p', class_='p')
-    if first_para:
-        text = first_para.get_text(' ', strip=True)
-        first_sentence = text.split('.')[0]
-        return f'{first_sentence.strip()}.'
+    for p in soup.find_all('p', class_=['p', 'q', 'q1', 'q2']):
+        verse_num = p.find('span', class_='v')
+        verse_text = p.get_text(' ', strip=True)
+        if verse_num:
+            num = verse_num.get_text(strip=True)
+            verse_text = verse_text.replace(num, '', 1).strip()
+            text.append(f'{num} ', style='bold cyan')
+        text.append(escape(verse_text) + '\n', style='white')
 
-    return 'Summary unavailable.'
+    return text
 
 
-def render_chapter(
+def render_nkjv_chapter(
     html: str,
     reference: str,
     summary: str | None = None,
@@ -37,7 +37,6 @@ def render_chapter(
     - metadata: dictionary with contextual info (e.g., {"book": "Genesis", "chapter": 1, "verses": 31})
     """
     soup = BeautifulSoup(html, 'html.parser')
-    soup = util.normalise_paragraph_classes(soup)
     text = Text()
 
     # Header block
@@ -96,32 +95,5 @@ def render_chapter(
 
         text.append(paragraph_text)
         text.append('\n')
-
-    return text
-
-
-def render_verse(html: str) -> Text:
-    """Render a single verse with rich formatting."""
-    soup = BeautifulSoup(html, 'html.parser')
-    soup = util.normalise_paragraph_classes(soup)
-    text = Text()
-
-    # Section titles
-    for s in soup.find_all('p', class_='s'):
-        title = s.get_text(strip=True)
-        text.append(f'\n{title}\n', style='bold gold3')
-
-    # Verse paragraphs
-    for p in soup.find_all('p', class_='p'):
-        verse_num = p.find('span', class_='v')
-        verse_text = p.get_text(' ', strip=True)
-
-        if verse_num:
-            num = verse_num.get_text(strip=True)
-            # Remove the verse number from the paragraph text
-            verse_text = verse_text.replace(num, '', 1).strip()
-            text.append(f'{num} ', style='bold cyan')
-
-        text.append(escape(verse_text) + '\n', style='white')
 
     return text

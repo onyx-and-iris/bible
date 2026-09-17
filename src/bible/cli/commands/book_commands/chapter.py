@@ -7,7 +7,7 @@ from typing_extensions import override
 
 from bible import console
 from bible.mixins import BibleLookupMixin, ReferenceParserMixin
-from bible.render import generate_summary, render_chapter
+from bible.render import RenderMode, generate_summary, get_renderer
 
 
 class Chapter(BibleLookupMixin, ReferenceParserMixin, Command):
@@ -29,6 +29,7 @@ class Chapter(BibleLookupMixin, ReferenceParserMixin, Command):
         self.bible = self.find_bible(self.bible_name)
         self.book = self.find_book(self.bible_name, self.book_name)
         self.chapters = await self.load_or_fetch_chapters(self.bible, self.book)
+        self.renderer = get_renderer(self.bible_name, RenderMode.CHAPTER)
 
     @override
     async def run(self):
@@ -39,7 +40,7 @@ class Chapter(BibleLookupMixin, ReferenceParserMixin, Command):
             self.bible, self.book, chapter
         )
 
-        text = render_chapter(
+        text = self.renderer(
             html=content.get('content', ''),
             reference=content.get('reference', ''),
             summary=generate_summary(content.get('content', '')),
@@ -69,6 +70,7 @@ class Chapters(BibleLookupMixin, ReferenceParserMixin, Command):
         self.bible = self.find_bible(self.bible_name)
         self.book = self.find_book(self.bible_name, self.book_name)
         self.chapters = await self.load_or_fetch_chapters(self.bible, self.book)
+        self.renderer = get_renderer(self.bible_name, RenderMode.CHAPTER)
 
     @override
     async def run(self):
@@ -117,7 +119,7 @@ class Chapters(BibleLookupMixin, ReferenceParserMixin, Command):
 
         # Render each chapter
         for chapter in results:
-            text = render_chapter(
+            text = self.renderer(
                 html=chapter.get('content', ''),
                 reference=chapter.get('reference', ''),
                 summary=generate_summary(chapter.get('content', '')),

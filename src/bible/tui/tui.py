@@ -11,7 +11,7 @@ from textual.widgets import Footer, Header, Input, Link, Static
 
 from bible.logging import LogOutputType, configure_logging
 from bible.mixins import BibleLookupMixin, ReferenceParserMixin
-from bible.render import generate_summary, render_chapter, render_verse
+from bible.render import RenderMode, generate_summary, get_renderer
 from bible.settings import settings
 from bible.sqlite import init_db, load_json
 
@@ -41,6 +41,11 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         self.current_bible_name = settings.tui.BIBLE_NAME
         self.current_book_name = settings.tui.BOOK_NAME
         self.active_theme = settings.tui.THEME
+        self.chapter_renderer = get_renderer(
+            self.current_bible_name, RenderMode.CHAPTER
+        )
+        self.verse_renderer = get_renderer(self.current_bible_name, RenderMode.VERSE)
+
         init_db()
         self.call_later(self.initialise_bible_list)
 
@@ -277,7 +282,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             html = data.get('content', '')
 
             if kind == 'verse':
-                rendered = render_verse(html)
+                rendered = self.verse_renderer(html)
                 output.append(rendered)
             else:
                 summary = generate_summary(html)
@@ -286,7 +291,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
                     'Chapter': chapter,
                     'Verses': data.get('verseCount'),
                 }
-                rendered = render_chapter(
+                rendered = self.chapter_renderer(
                     html,
                     f'{self.current_book_name} {chapter}',
                     summary,
