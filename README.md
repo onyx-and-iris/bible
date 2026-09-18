@@ -92,7 +92,9 @@ The Bible versions I have tested are:
 -   New International Version 2011
 -   New Living Translation
 
-A generic renderer has been added but since each Bible has its own markup differences it's better to implement a Bible specific renderer.
+#### Other Bibles?
+
+I've included a default (fallback) renderer but since each Bible has its own markup quirks to officially support a Bible a renderer needs to be implemented.
 
 ---
 
