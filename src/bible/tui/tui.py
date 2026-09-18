@@ -33,6 +33,14 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         ('ctrl+b', 'list_books', 'List Books'),
         ('l', 'list_bibles', 'List Bibles'),
         ('ctrl+l', 'list_bibles', 'List Bibles'),
+        ('n', 'next_chapter', 'Next chapter'),
+        ('ctrl+n', 'next_chapter', 'Next chapter'),
+        ('p', 'prev_chapter', 'Previous chapter'),
+        ('ctrl+p', 'prev_chapter', 'Previous chapter'),
+        ('j', 'next_chapter', 'Next chapter'),
+        ('ctrl+j', 'next_chapter', 'Next chapter'),
+        ('k', 'prev_chapter', 'Previous chapter'),
+        ('ctrl+k', 'prev_chapter', 'Previous chapter'),
     ]
 
     def __init__(self, theme_override: str | None = None, **kwargs):
@@ -219,6 +227,46 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             f'📚 Books in {self.current_bible_name}:\n\n{formatted}'
         )
 
+    async def action_next_chapter(self) -> None:
+        """Navigate to the next chapter if available."""
+        next_info = getattr(self, 'next_chapter', None)
+        if not next_info:
+            self.query_one('#content', Static).update('⚠️ No next chapter available.')
+            return
+
+        book = next_info.get('bookId')
+        chapter = next_info.get('number')
+
+        # Skip intros or invalid chapter identifiers
+        if not chapter or not chapter.isdigit():
+            self.query_one('#content', Static).update('⚠️ No next chapter available.')
+            return
+
+        self.input.value = f'{book} {chapter}'
+        await self.action_show_reference()
+
+    async def action_prev_chapter(self) -> None:
+        """Navigate to the previous chapter if available."""
+        prev_info = getattr(self, 'prev_chapter', None)
+        if not prev_info:
+            self.query_one('#content', Static).update(
+                '⚠️ No previous chapter available.'
+            )
+            return
+
+        book = prev_info.get('bookId')
+        chapter = prev_info.get('number')
+
+        # Skip intros or invalid chapter identifiers
+        if not chapter or not chapter.isdigit():
+            self.query_one('#content', Static).update(
+                '⚠️ No previous chapter available.'
+            )
+            return
+
+        self.input.value = f'{book} {chapter}'
+        await self.action_show_reference()
+
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle user search input."""
         await self.action_show_reference()
@@ -285,6 +333,10 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
                 )
                 output.append(f'⚠️ Error fetching {ref}: {data}\n')
                 continue
+
+            self.next_chapter = data.get('next')
+            self.prev_chapter = data.get('previous')
+            self.current_chapter = chapter
 
             html = data.get('content', '')
 
