@@ -2,7 +2,6 @@ import asyncio
 from typing import final
 
 from clypi import Command, Positional, Spinner, arg
-from loguru import logger
 from typing_extensions import override
 
 from bible import console
@@ -111,34 +110,3 @@ class Verses(BibleLookupMixin, ReferenceParserMixin, Command):
         for verse in results:
             text = self.renderer(verse.get('content', ''))
             console.out.print(text)
-
-
-def expand_verse_numbers(verse_numbers):
-    if not verse_numbers:
-        return None
-
-    allowed = set()
-
-    for item in verse_numbers:
-        # numeric int
-        if isinstance(item, int):
-            allowed.add(item)
-            continue
-
-        # numeric string
-        if isinstance(item, str) and item.isdigit():
-            allowed.add(int(item))
-            continue
-
-        # range string "5-9"
-        if isinstance(item, str) and '-' in item:
-            try:
-                start, end = item.split('-', maxsplit=1)
-                allowed.update(range(int(start), int(end) + 1))
-            except ValueError:
-                logger.warning(f"Invalid verse range '{item}'. Skipping.")
-            continue
-
-        logger.warning(f"Invalid verse number '{item}'. Skipping.")
-
-    return allowed
