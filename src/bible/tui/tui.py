@@ -36,11 +36,19 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         ('n', 'next_chapter', 'Next chapter'),
         ('ctrl+n', 'next_chapter', 'Next chapter'),
         ('p', 'prev_chapter', 'Previous chapter'),
-        ('ctrl+p', 'prev_chapter', 'Previous chapter'),
+        (
+            'ctrl+shift+p',
+            'prev_chapter',
+            'Previous chapter',
+        ),  # Textual reserves ctrl+p to bring up the command palette
         ('j', 'next_chapter', 'Next chapter'),
         ('ctrl+j', 'next_chapter', 'Next chapter'),
         ('k', 'prev_chapter', 'Previous chapter'),
-        ('ctrl+k', 'prev_chapter', 'Previous chapter'),
+        (
+            'ctrl+shift+k',
+            'prev_chapter',
+            'Previous chapter',
+        ),  # Textual reserves ctrl+k for clearing input widget text
     ]
 
     def __init__(self, theme_override: str | None = None, **kwargs):
