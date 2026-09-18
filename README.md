@@ -84,5 +84,16 @@ BIBLE_TUI_LOG_LEVEL="info"
 
 ---
 
+### Supported Bibles
+
+The Bible versions I have tested are:
+
+-   New King James Version
+-   New International Version 2011
+
+A generic renderer has been added but since each Bible has its own markup differences it's better to implement a Bible specific renderer.
+
+---
+
 [api-bible]: https://api.bible
 [acceptable-use]: https://api.bible/terms-and-conditions#acceptable_use
