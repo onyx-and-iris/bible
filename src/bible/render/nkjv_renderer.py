@@ -31,11 +31,6 @@ def render_nkjv_chapter(
     summary: str | None = None,
     metadata: dict | None = None,
 ) -> Text:
-    """
-    Render a full Bible chapter with rich formatting, summaries, and metadata.
-    - summary: short overview of the chapter's theme
-    - metadata: dictionary with contextual info (e.g., {"book": "Genesis", "chapter": 1, "verses": 31})
-    """
     soup = BeautifulSoup(html, 'html.parser')
     text = Text()
 
@@ -53,47 +48,74 @@ def render_nkjv_chapter(
         text.append(f'\n{summary}\n', style='italic grey70')
         text.append('─' * len(summary) + '\n\n', style='grey50')
 
-    # Section titles
-    for s in soup.find_all('p', class_='s'):
-        title = s.get_text(strip=True)
-        text.append(f'{title}\n\n', style='bold gold3')
+    last_verse_num = None
 
-    # Paragraphs with verses
-    for p in soup.find_all('p', class_='p'):
-        paragraph_text = Text()
+    # Unified paragraph loop
+    for p in soup.find_all('p'):
+        cls = p.get('class', [])
+        if not cls:
+            continue
 
-        for span in p.find_all('span', class_='v'):
-            verse_num = span.get_text(strip=True)
-            verse_content_parts = []
+        # Section titles
+        if 's' in cls:
+            title = p.get_text(strip=True)
+            text.append(f'{title}\n\n', style='bold gold3')
+            continue
 
-            # Collect siblings until next verse span
-            for sibling in span.next_siblings:
-                if getattr(sibling, 'name', None) == 'span' and 'v' in sibling.get(
-                    'class', []
-                ):
-                    break
-                if getattr(sibling, 'name', None) == 'span' and 'it' in sibling.get(
-                    'class', []
-                ):
-                    verse_content_parts.append(
-                        (' ' + sibling.get_text(strip=True) + ' ', 'italic white')
-                    )
-                elif isinstance(sibling, str):
-                    verse_content_parts.append((sibling, 'white'))
-                elif getattr(sibling, 'name', None):
-                    verse_content_parts.append(
-                        (sibling.get_text(' ', strip=True), 'white')
-                    )
+        # Poetic lines
+        if any(c.startswith('q') for c in cls):
+            verse_span = p.find('span', class_='v')
+            verse_num = (
+                verse_span.get_text(strip=True) if verse_span else last_verse_num
+            )
+            if verse_num == last_verse_num:
+                continue
+            last_verse_num = verse_num
 
-            # Build verse line
-            paragraph_text.append(f'  {verse_num} ', style='bold bright_cyan')
-            for part, style in verse_content_parts:
-                if paragraph_text and not paragraph_text.plain.endswith(' '):
-                    paragraph_text.append(' ')
-                paragraph_text.append(part.strip(), style=style)
-            paragraph_text.append('\n')
+            line_text = p.get_text(' ', strip=True)
+            if verse_num:
+                line_text = line_text.replace(verse_num, '', 1).strip()
 
-        text.append(paragraph_text)
-        text.append('\n')
+            indent = '  ' if 'q1' in cls else '      '
+            num_style = 'bold bright_cyan' if 'q1' in cls else 'dim bright_cyan'
+            text.append(f'{indent}{verse_num or ""} ', style=num_style)
+            text.append(escape(line_text) + '\n', style='white')
+            continue
+
+        # Standard prose paragraphs
+        if 'p' in cls:
+            paragraph_text = Text()
+            for span in p.find_all('span', class_='v'):
+                verse_num = span.get_text(strip=True)
+                if verse_num == last_verse_num:
+                    continue
+                last_verse_num = verse_num
+
+                verse_content_parts = []
+                for sibling in span.next_siblings:
+                    if getattr(sibling, 'name', None) == 'span' and 'v' in sibling.get(
+                        'class', []
+                    ):
+                        break
+                    if getattr(sibling, 'name', None) == 'span' and 'it' in sibling.get(
+                        'class', []
+                    ):
+                        verse_content_parts.append(
+                            (' ' + sibling.get_text(strip=True) + ' ', 'italic white')
+                        )
+                    elif isinstance(sibling, str):
+                        verse_content_parts.append((sibling, 'white'))
+                    elif getattr(sibling, 'name', None):
+                        verse_content_parts.append(
+                            (sibling.get_text(' ', strip=True), 'white')
+                        )
+
+                paragraph_text.append(f'  {verse_num} ', style='bold bright_cyan')
+                for part, style in verse_content_parts:
+                    paragraph_text.append(part.strip(), style=style)
+                paragraph_text.append('\n')
+
+            text.append(paragraph_text)
+            text.append('\n')
 
     return text
