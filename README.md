@@ -90,6 +90,7 @@ The Bible versions I have tested are:
 
 -   New King James Version
 -   New International Version 2011
+-   New Living Translation
 
 A generic renderer has been added but since each Bible has its own markup differences it's better to implement a Bible specific renderer.
 

@@ -3,6 +3,7 @@ from enum import IntEnum
 from .generic import render_generic_chapter, render_generic_verse
 from .niv_renderer import render_niv_chapter, render_niv_verse
 from .nkjv_renderer import render_nkjv_chapter, render_nkjv_verse
+from .nlt_renderer import render_nlt_chapter, render_nlt_verse
 
 
 class RenderMode(IntEnum):
@@ -18,6 +19,10 @@ RENDERERS = {
     'New King James Version': {
         RenderMode.CHAPTER: render_nkjv_chapter,
         RenderMode.VERSE: render_nkjv_verse,
+    },
+    'New Living Translation': {
+        RenderMode.CHAPTER: render_nlt_chapter,
+        RenderMode.VERSE: render_nlt_verse,
     },
     '_default': {
         RenderMode.CHAPTER: render_generic_chapter,
