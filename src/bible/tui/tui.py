@@ -357,6 +357,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
                     'Book': self.current_book_name,
                     'Chapter': chapter,
                     'Verses': data.get('verseCount'),
+                    'Copyright': data.get('copyright', '').replace('©', '(c)'),
                 }
                 rendered = self.chapter_renderer(
                     html,
