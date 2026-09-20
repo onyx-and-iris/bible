@@ -40,3 +40,24 @@ def render_paragraphs(soup: BeautifulSoup, text: Text, classes=('p', 'm', 'b', '
             verse_text = verse_text.replace(num, '', 1).strip()
             text.append(f'{num} ', style='bold cyan')
         text.append(escape(verse_text) + '\n', style='white')
+
+
+def render_poetic_line(p, last_verse_num):
+    cls = p.get('class', [])
+    verse_span = p.find('span', class_='v')
+
+    # q1 = new verse
+    if verse_span:
+        verse_num = verse_span.get_text(strip=True)
+        line_text = p.get_text(' ', strip=True).replace(verse_num, '', 1).strip()
+        indent = '  '
+        num_style = 'bold bright_cyan'
+        return verse_num, [
+            (f'{indent}{verse_num} ', num_style),
+            (escape(line_text) + '\n', 'white'),
+        ]
+
+    # q2/q3/q4 = continuation
+    indent = '      ' if 'q2' in cls else '          '
+    line_text = p.get_text(' ', strip=True)
+    return last_verse_num, [(f'{indent}{escape(line_text)}\n', 'white')]

@@ -3,7 +3,7 @@ from html import escape
 from bs4 import BeautifulSoup
 from rich.text import Text
 
-from .common import render_section_titles
+from .common import render_poetic_line, render_section_titles
 
 
 def render_niv_verse(html: str) -> Text:
@@ -160,20 +160,9 @@ def render_niv_chapter(
 
         # Poetic lines (q1 / q2)
         if any(c.startswith('q') for c in cls):
-            verse_span = p.find('span', class_='v')
-            verse_num = (
-                verse_span.get_text(strip=True) if verse_span else last_verse_num
-            )
-            if verse_num == last_verse_num:
-                continue
-            last_verse_num = verse_num
-            line_text = p.get_text(' ', strip=True)
-            if verse_num:
-                line_text = line_text.replace(verse_num, '', 1).strip()
-            indent = '  ' if 'q1' in cls else '      '
-            num_style = 'bold bright_cyan' if 'q1' in cls else 'dim bright_cyan'
-            text.append(f'{indent}{verse_num or ""} ', style=num_style)
-            text.append(escape(line_text) + '\n', style='white')
+            last_verse_num, parts = render_poetic_line(p, last_verse_num)
+            for text_part, style in parts:
+                text.append(text_part, style=style)
             continue
 
         # Standard verse paragraphs (mixed style)
