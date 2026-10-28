@@ -13,14 +13,30 @@ def render_niv_verse(html: str) -> Text:
 
     render_section_titles(soup, text)
 
-    for p in soup.find_all('p', class_=['p', 'pmo', 'pm', 'lh', 'lf']):
-        verse_num = p.find('span', class_='v')
-        verse_text = p.get_text(' ', strip=True)
-        if verse_num:
-            num = verse_num.get_text(strip=True)
-            verse_text = verse_text.replace(num, '', 1).strip()
-            text.append(f'{num} ', style='bold cyan')
-        text.append(escape(verse_text) + '\n', style='white')
+    last_verse_num = None
+
+    for p in soup.find_all('p'):
+        cls = p.get('class', []) or []
+
+        # Poetry (q1, q2, q3, q4)
+        if any(c.startswith('q') for c in cls):
+            last_verse_num, parts = render_poetic_line(p, last_verse_num)
+            for part, style in parts:
+                text.append(part, style=style)
+            continue
+
+        # Standard prose paragraphs
+        if any(c in cls for c in ['p', 'pmo', 'pm', 'lh', 'lf']):
+            verse_span = p.find('span', class_='v')
+            verse_text = p.get_text(' ', strip=True)
+
+            if verse_span:
+                num = verse_span.get_text(strip=True)
+                verse_text = verse_text.replace(num, '', 1).strip()
+                text.append(f'{num} ', style='bold cyan')
+
+            text.append(escape(verse_text) + '\n', style='white')
+            continue
 
     return text
 
