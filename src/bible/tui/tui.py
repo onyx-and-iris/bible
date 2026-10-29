@@ -5,9 +5,17 @@ from typing import Any
 
 from rich.text import Text
 from textual.app import App, ComposeResult
-from textual.containers import VerticalScroll
+from textual.containers import Grid, VerticalScroll
 from textual.theme import Theme
-from textual.widgets import Footer, Header, Input, Link, LoadingIndicator, Static
+from textual.widgets import (
+    Button,
+    Footer,
+    Header,
+    Input,
+    Link,
+    LoadingIndicator,
+    Static,
+)
 
 from bible.logging import LogOutputType, configure_logging
 from bible.mixins import BibleLookupMixin, ReferenceParserMixin
@@ -222,18 +230,25 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         )
 
     async def action_list_books(self) -> None:
-        """List all books for the current Bible."""
+        """List all books for the current Bible as clickable buttons."""
 
         key = f'books:list:{self.current_bible_name}'
         books = load_json(key)
         if not books:
             books = await self.initialise_book_list()
 
-        book_names = [book.get('name', 'Unknown') for book in books]
-        formatted = '\n'.join(book_names)
-        self.query_one('#content', Static).update(
-            f'📚 Books in {self.current_bible_name}:\n\n{formatted}'
-        )
+        content = self.query_one('#content', Static)
+        container = content.parent
+        content.display = False
+
+        grid = Grid(id='book-grid')
+        container.mount(grid)
+
+        for book in books:
+            name = book.get('name')
+            id_ = book.get('id')
+            btn = Button(label=name, id=f'book-{id_}')
+            grid.mount(btn)
 
     async def action_next_chapter(self) -> None:
         """Navigate to the next chapter if available."""
@@ -274,6 +289,20 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
 
         self.input.value = f'{self.current_book_name} {chapter}'
         await self.action_show_reference()
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        btn = event.button
+        if btn.id.startswith('book-'):
+            book_grid = self.query_one('#book-grid', Grid)
+            book_grid.remove()
+
+            content = self.query_one('#content', Static)
+            content.display = True
+
+            book_name = btn.label
+            self.current_book_name = book_name
+            self.input.value = f'{book_name} 1'
+            await self.action_show_reference()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         """Handle user search input."""

@@ -37,7 +37,7 @@ Footer {
 }
 
 /* Make scripture text more readable */
-#content Text {
+#content > Text {
     padding-top: 1;
     padding-bottom: 1;
 }
@@ -66,29 +66,26 @@ ModalScreen > Vertical {
     height: auto;
 }
 
-ModalScreen Button {
-    margin-top: 1;
-    width: 100%;
-}
-
 ModalScreen Label {
     padding: 1 1;
 }
 
 
-/* ===== Buttons ===== */
+/* ===== ModalScreen Buttons ===== */
 
-Button {
+ModalScreen Button {
     background: $accent;
     color: $text;
     text-style: bold;
+    margin-top: 1;
+    width: 100%;
 }
 
-Button:hover {
+ModalScreen Button:hover {
     background: $accent-lighten-3;
 }
 
-/* Footer */
+/* ===== Footer ===== */
 Footer {
     background: $surface-darken-3;
     color: $text-muted;
@@ -104,4 +101,34 @@ Footer {
     padding: 1 2;
     background: $surface;
     color: $text-muted;
+}
+
+/* ===== Book Grid ===== */
+
+#book-grid {
+    height: auto;
+    padding: 1;
+    grid-size: 8;
+    grid-gutter: 1 2;
+}
+
+#book-grid Button {
+    background: $surface;
+    color: $foreground;
+    border: solid $accent;
+    padding: 1;
+    min-height: 3;               /* allow label to expand */
+    text-align: center;
+    content-align: center middle;
+}
+
+#book-grid Button Label {
+    height: auto;                /* critical */
+    padding: 0;
+    content-align: center middle;
+}
+
+#book-grid Button:hover {
+    background: $accent;
+    color: $surface;
 }
