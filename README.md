@@ -43,6 +43,12 @@ bible-cli book verse John 1 1
 
 ![cli-verse](./img/cli-verse.png)
 
+```console
+bible-cli book verses John 1 1-8
+```
+
+![cli-verses](./img/cli-verses.png)
+
 ### Run as a TUI
 
 ```console
@@ -50,6 +56,8 @@ bible-tui
 ```
 
 ![tui](./img/tui.png)
+
+![tui-book-grid](./img/tui-book-grid-light.png)
 
 ---
 
