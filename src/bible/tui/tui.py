@@ -6,6 +6,7 @@ from typing import Any
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Grid, VerticalScroll
+from textual.css.query import NoMatches
 from textual.theme import Theme
 from textual.widgets import (
     Button,
@@ -241,14 +242,17 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
         container = content.parent
         content.display = False
 
-        grid = Grid(id='book-grid')
-        container.mount(grid)
-
-        for book in books:
-            name = book.get('name')
-            id_ = book.get('id')
-            btn = Button(label=name, id=f'book-{id_}')
-            grid.mount(btn)
+        try:
+            grid = container.query_one('#book-grid', expect_type=Grid)
+            container.mount(grid)
+        except NoMatches:
+            grid = Grid(id='book-grid')
+            container.mount(grid)
+            for book in books:
+                name = book.get('name')
+                id_ = book.get('id')
+                btn = Button(label=name, id=f'book-{id_}')
+                grid.mount(btn)
 
     async def action_next_chapter(self) -> None:
         """Navigate to the next chapter if available."""
