@@ -242,7 +242,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             self.query_one('#content', Static).update('⚠️ No next chapter available.')
             return
 
-        book = next_info.get('bookId')
+        # book = next_info.get('bookId')
         chapter = next_info.get('number')
 
         # Skip intros or invalid chapter identifiers
@@ -250,7 +250,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             self.query_one('#content', Static).update('⚠️ No next chapter available.')
             return
 
-        self.input.value = f'{book} {chapter}'
+        self.input.value = f'{self.current_book_name} {chapter}'
         await self.action_show_reference()
 
     async def action_prev_chapter(self) -> None:
@@ -262,7 +262,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             )
             return
 
-        book = prev_info.get('bookId')
+        # book = prev_info.get('bookId')
         chapter = prev_info.get('number')
 
         # Skip intros or invalid chapter identifiers
@@ -272,7 +272,7 @@ class BibleTUI(BibleLookupMixin, ReferenceParserMixin, App):
             )
             return
 
-        self.input.value = f'{book} {chapter}'
+        self.input.value = f'{self.current_book_name} {chapter}'
         await self.action_show_reference()
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
